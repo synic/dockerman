@@ -75,17 +75,18 @@ def command(options=(), passthrough=False, default=False):
 option = Option
 
 
-def run(cmd, args=None):
+def run(cmd, args=None, echo=True):
     args = ' '.join([
         f'"{arg}"' if ' ' in arg else arg
         for arg in args
     ]) if args else ''
     command = f'{cmd} {args}'
-    logcmd(command)
+    if echo:
+        logcmd(command)
     os.system(command)
 
 
-def crun(cmd, args=None, container=None):
+def crun(cmd, args=None, container=None, echo=True):
     running = False
     if container is None:
         container = default_container
@@ -106,7 +107,7 @@ def crun(cmd, args=None, container=None):
         )
         return
 
-    run(f'docker exec -it {container} {cmd}', args)
+    run(f'docker exec -it {container} {cmd}', args, echo=echo)
 
 
 def log(msg, color=Color.endc):
