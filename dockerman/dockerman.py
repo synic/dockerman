@@ -1,8 +1,10 @@
 import argparse
+import enum
 import functools
 import os
 import subprocess
 import sys
+from typing import Any, Callable, List, Optional, Tuple, Union
 
 parser = argparse.ArgumentParser(prog="./manage")
 subparsers = parser.add_subparsers()
@@ -11,7 +13,7 @@ default_container = ""
 default_command = None
 
 
-class Color(object):
+class Color(enum.Enum):
     debug = "\033[96m"
     info = "\033[92m"
     warning = "\033[93m"
@@ -19,14 +21,14 @@ class Color(object):
     endc = "\033[0m"
 
 
-class Option(object):
-    def __init__(self, *args, **kwargs):
+class Option:
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         self.args = args
         self.kwargs = kwargs
 
 
 class File(object):
-    def __init__(self, fn):
+    def __init__(self, fn: str) -> None:
         if fn.lower().endswith(".sql"):
             self.fmt = "sql"
         elif fn.lower().endswith(".json"):
@@ -35,20 +37,24 @@ class File(object):
             raise ValueError("Invalid file import extension")
         self.fn = fn
 
-    def __str__(self):
+    def __str__(self) -> None:
         return self.fn
 
 
-def file(fn):
+def file(fn: str) -> Optional[File]:
     return File(fn) if fn else None
 
 
-def command(options=(), passthrough=False, default=False):
-    def decorator(func):
+def command(
+    options: Union[List[Option], Tuple[Option]] = (),
+    passthrough: bool = False,
+    default: bool = False,
+):
+    def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
         global default_command
 
         @functools.wraps(func)
-        def wrapper(*args, **kwargs):
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
             return func(*args, **kwargs)
 
         name = func.__name__.replace("_", "-")
@@ -76,7 +82,7 @@ def command(options=(), passthrough=False, default=False):
 option = Option
 
 
-def run(cmd, args=None, echo=True):
+def run(cmd: str, args: Optional[List[str]] = None, echo: bool = True) -> None:
     args = " ".join([f'"{arg}"' if " " in arg else arg for arg in args]) if args else ""
     command = f"{cmd} {args}"
     if echo:
@@ -84,7 +90,9 @@ def run(cmd, args=None, echo=True):
     os.system(command)
 
 
-def crun(cmd, args=None, container=None, echo=True):
+def crun(
+    cmd: str, args: Optional[List[str]] = None, container: str = None, echo: bool = True
+) -> None:
     running = False
     if container is None:
         container = default_container
@@ -112,33 +120,33 @@ def crun(cmd, args=None, container=None, echo=True):
     run(f"docker exec -it {container} {cmd}", args, echo=echo)
 
 
-def log(msg, color=Color.endc):
+def log(msg: str, color: Color = Color.endc) -> None:
     print(f"{color}{msg}{Color.endc}")
 
 
-def logcmd(msg):
+def logcmd(msg: str) -> None:
     log(f" -> {msg}", Color.debug)
 
 
-def info(msg):
+def info(msg: str) -> None:
     log(msg, Color.info)
 
 
-def warning(msg):
+def warning(msg: str) -> None:
     log(msg, Color.warning)
 
 
-def error(msg):
+def error(msg: str) -> None:
     log(f"ERROR: {msg}", Color.error)
 
 
 @command()
-def help(args):
+def help(args: Optional[List[str]]) -> None:
     """Print this help message."""
     parser.print_help(sys.stderr)
 
 
-def main(prog="./do"):
+def main(prog: str = "./do") -> None:
     parser.prog = prog
     default = default_command.command_name if default_command else None
     args = sys.argv[1:]
