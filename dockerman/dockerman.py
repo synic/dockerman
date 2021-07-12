@@ -4,19 +4,19 @@ import os
 import subprocess
 import sys
 
-parser = argparse.ArgumentParser(prog='./manage')
+parser = argparse.ArgumentParser(prog="./manage")
 subparsers = parser.add_subparsers()
 parsers = {}
-default_container = ''
+default_container = ""
 default_command = None
 
 
 class Color(object):
-    debug = '\033[96m'
-    info = '\033[92m'
-    warning = '\033[93m'
-    error = '\033[91m'
-    endc = '\033[0m'
+    debug = "\033[96m"
+    info = "\033[92m"
+    warning = "\033[93m"
+    error = "\033[91m"
+    endc = "\033[0m"
 
 
 class Option(object):
@@ -27,12 +27,12 @@ class Option(object):
 
 class File(object):
     def __init__(self, fn):
-        if fn.lower().endswith('.sql'):
-            self.fmt = 'sql'
-        elif fn.lower().endswith('.json'):
-            self.fmt = 'json'
+        if fn.lower().endswith(".sql"):
+            self.fmt = "sql"
+        elif fn.lower().endswith(".json"):
+            self.fmt = "json"
         else:
-            raise ValueError('Invalid file import extension')
+            raise ValueError("Invalid file import extension")
         self.fn = fn
 
     def __str__(self):
@@ -51,7 +51,7 @@ def command(options=(), passthrough=False, default=False):
         def wrapper(*args, **kwargs):
             return func(*args, **kwargs)
 
-        name = func.__name__.replace('_', '-')
+        name = func.__name__.replace("_", "-")
         parser = subparsers.add_parser(name, help=func.__doc__)
         parser.set_defaults(func=func)
 
@@ -64,7 +64,7 @@ def command(options=(), passthrough=False, default=False):
 
         if default:
             if default_command:
-                raise ValueError('There can only be one default command.')
+                raise ValueError("There can only be one default command.")
             default_command = wrapper
 
         parsers[name] = wrapper
@@ -77,11 +77,8 @@ option = Option
 
 
 def run(cmd, args=None, echo=True):
-    args = ' '.join([
-        f'"{arg}"' if ' ' in arg else arg
-        for arg in args
-    ]) if args else ''
-    command = f'{cmd} {args}'
+    args = " ".join([f'"{arg}"' if " " in arg else arg for arg in args]) if args else ""
+    command = f"{cmd} {args}"
     if echo:
         logcmd(command)
     os.system(command)
@@ -93,11 +90,15 @@ def crun(cmd, args=None, container=None, echo=True):
         container = default_container
 
     try:
-        output = subprocess.check_output(
-            f'docker inspect --format {{{{.State.Running}}}} '
-            f'{container}'.split()
-        ).decode('utf8').strip()
-        running = output == 'true'
+        output = (
+            subprocess.check_output(
+                f"docker inspect --format {{{{.State.Running}}}} "
+                f"{container}".split()
+            )
+            .decode("utf8")
+            .strip()
+        )
+        running = output == "true"
     except subprocess.CalledProcessError:
         pass
 
@@ -108,15 +109,15 @@ def crun(cmd, args=None, container=None, echo=True):
         )
         return
 
-    run(f'docker exec -it {container} {cmd}', args, echo=echo)
+    run(f"docker exec -it {container} {cmd}", args, echo=echo)
 
 
 def log(msg, color=Color.endc):
-    print(f'{color}{msg}{Color.endc}')
+    print(f"{color}{msg}{Color.endc}")
 
 
 def logcmd(msg):
-    log(f' -> {msg}', Color.debug)
+    log(f" -> {msg}", Color.debug)
 
 
 def info(msg):
@@ -128,7 +129,7 @@ def warning(msg):
 
 
 def error(msg):
-    log(f'ERROR: {msg}', Color.error)
+    log(f"ERROR: {msg}", Color.error)
 
 
 @command()
@@ -137,7 +138,7 @@ def help(args):
     parser.print_help(sys.stderr)
 
 
-def main(prog='./do'):
+def main(prog="./do"):
     parser.prog = prog
     default = default_command.command_name if default_command else None
     args = sys.argv[1:]
@@ -165,5 +166,5 @@ def main(prog='./do'):
         parser.print_help(sys.stderr)
         sys.exit(1)
 
-    if getattr(args, 'func', None):
+    if getattr(args, "func", None):
         args.func(args)
