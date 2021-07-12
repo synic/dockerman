@@ -118,6 +118,23 @@ $ ./do manage makemigrations --name add_user_is_active_field accounts
 The `makemigrations --name add_user_is_active_field accounts` will be passed
 through to `django-admin` on the container.
 
+#### Default Commands
+
+Another possible argument to `@dm.command` is `default=True`. This will cause
+the system to use this command for everything that doesn't match any other
+command. For instance, instead of defining a `shell` command for django-admin,
+you could do the following:
+
+```python
+@dm.command(passthrough=True, default=True)
+def manage(args):
+    """Run Django management commands."""
+    dm.crun("django-admin", args)
+```
+
+Then, if you type `./do shell` and there is no matching `shell` command
+defined, it will act as though you typed `./do manage shell`.
+
 ### `dm.run`
 
 This runs a command on the host. Things like
