@@ -55,7 +55,8 @@ def command(options=(), passthrough=False, default=False):
         parser = subparsers.add_parser(name, help=func.__doc__)
         parser.set_defaults(func=func)
 
-        for option in options:
+        opts = [options] if not isinstance(options, (list, tuple)) else options
+        for option in opts:
             parser.add_argument(*option.args, **option.kwargs)
 
         wrapper.passthrough = passthrough
