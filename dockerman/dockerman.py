@@ -160,7 +160,7 @@ def main(prog: str = "./do") -> None:
     except (KeyError, IndexError):
         command = default
 
-    if command and parsers[command].passthrough:
+    if command and parsers[command].passthrough and len(sys.argv) > 1:
         parsers[command](args)
         sys.exit(0)
 
