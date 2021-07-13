@@ -121,7 +121,7 @@ def crun(
 
 
 def log(msg: str, color: Color = Color.endc) -> None:
-    print(f"{color}{msg}{Color.endc}")
+    print(f"{color.value}{msg}{Color.endc.value}")
 
 
 def logcmd(msg: str) -> None:
