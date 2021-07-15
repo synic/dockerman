@@ -1,44 +1,21 @@
 import argparse
-import enum
 import functools
 import os
 import subprocess
 import sys
-from typing import Any, Callable, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
-parser = argparse.ArgumentParser(prog="./manage")
+from .color import Color
+from .datatypes import Command, Config, File, Option
+
+parser = argparse.ArgumentParser(prog="./manage", add_help=False)
 subparsers = parser.add_subparsers()
-parsers = {}
-default_container = ""
-default_command = None
+parsers: Dict[str, argparse.ArgumentParser] = {}
+config = Config()
 
 
-class Color(enum.Enum):
-    debug = "\033[96m"
-    info = "\033[92m"
-    warning = "\033[93m"
-    error = "\033[91m"
-    endc = "\033[0m"
-
-
-class Option:
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
-        self.args = args
-        self.kwargs = kwargs
-
-
-class File(object):
-    def __init__(self, fn: str) -> None:
-        if fn.lower().endswith(".sql"):
-            self.fmt = "sql"
-        elif fn.lower().endswith(".json"):
-            self.fmt = "json"
-        else:
-            raise ValueError("Invalid file import extension")
-        self.fn = fn
-
-    def __str__(self) -> None:
-        return self.fn
+def option(*args: Any, **kwargs: Any) -> Option:
+    return Option(*args, **kwargs)
 
 
 def file(fn: str) -> Optional[File]:
@@ -49,13 +26,12 @@ def command(
     options: Union[List[Option], Tuple[Option]] = (),
     passthrough: bool = False,
     default: bool = False,
+    hidden: bool = False,
 ):
-    def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
-        global default_command
-
+    def decorator(func: Command) -> Command:
         @functools.wraps(func)
-        def wrapper(*args: Any, **kwargs: Any) -> Any:
-            return func(*args, **kwargs)
+        def wrapper(args: argparse.Namespace) -> Any:
+            return func(args)
 
         name = func.__name__.replace("_", "-")
         parser = subparsers.add_parser(name, help=func.__doc__)
@@ -67,19 +43,17 @@ def command(
 
         wrapper.passthrough = passthrough
         wrapper.command_name = name
+        wrapper.hidden = hidden
 
         if default:
-            if default_command:
+            if config.default_command:
                 raise ValueError("There can only be one default command.")
-            default_command = wrapper
+            config.default_command = wrapper
 
         parsers[name] = wrapper
         return wrapper
 
     return decorator
-
-
-option = Option
 
 
 def run(cmd: str, args: Optional[List[str]] = None, echo: bool = True) -> None:
@@ -95,7 +69,11 @@ def crun(
 ) -> None:
     running = False
     if container is None:
-        container = default_container
+        container = config.default_container
+        if not container:
+            raise AttributeError(
+                "Default container is not set, so you must pass a container name"
+            )
 
     try:
         output = (
@@ -120,7 +98,7 @@ def crun(
     run(f"docker exec -it {container} {cmd}", args, echo=echo)
 
 
-def log(msg: str, color: Color = Color.endc) -> None:
+def log(msg: str = "", color: Color = Color.endc) -> None:
     print(f"{color.value}{msg}{Color.endc.value}")
 
 
@@ -140,15 +118,28 @@ def error(msg: str) -> None:
     log(f"ERROR: {msg}", Color.error)
 
 
-@command()
+@command(hidden=True)
 def help(args: Optional[List[str]]) -> None:
-    """Print this help message."""
-    parser.print_help(sys.stderr)
+    if config.splash:
+        log(config.splash, Color.debug)
+        log()
+
+    log(f"Usage: {config.prog_name} [command]\n")
+    log("Available commands:\n")
+
+    for name, func in sorted(parsers.items(), key=lambda x: x[0]):
+        if not func.hidden:
+            log(f"  {name:<22} {func.__doc__}")
 
 
-def main(prog: str = "./do") -> None:
-    parser.prog = prog
-    default = default_command.command_name if default_command else None
+def main(
+    prog_name: str = "./do", default_container: Optional[str] = None, splash: str = ""
+) -> None:
+    parser.prog = prog_name
+    config.prog_name = prog_name
+    config.default_container = default_container
+    config.splash = splash
+    default = config.default_command.command_name if config.default_command else None
     args = sys.argv[1:]
     command = None
 
@@ -165,13 +156,13 @@ def main(prog: str = "./do") -> None:
         sys.exit(0)
 
     if not args:
-        parser.print_help(sys.stderr)
+        help(None)
         sys.exit(1)
 
     args, extras = parser.parse_known_args(args)
 
     if extras:
-        parser.print_help(sys.stderr)
+        help(None)
         sys.exit(1)
 
     if getattr(args, "func", None):
