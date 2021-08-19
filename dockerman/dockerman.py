@@ -1,6 +1,5 @@
 import argparse
 import functools
-import os
 import subprocess
 import sys
 from typing import Any, Dict, List, Optional, Tuple, Union
@@ -56,16 +55,35 @@ def command(
     return decorator
 
 
-def run(cmd: str, args: Optional[List[str]] = None, echo: bool = True) -> None:
+def run(
+    cmd: str,
+    args: Optional[List[str]] = None,
+    echo: bool = True,
+    logstatus: bool = False,
+) -> None:
     args = " ".join([f'"{arg}"' if " " in arg else arg for arg in args]) if args else ""
     command = f"{cmd} {args}"
     if echo:
         logcmd(command)
-    os.system(command)
+
+    code = subprocess.call(command, shell=True)
+
+    if logstatus:
+        log("")
+
+        if code != 0:
+            error(f"Command exited with a non-zero exit code: {code}")
+        else:
+            info("Command completed without any errors.")
+    return code
 
 
 def crun(
-    cmd: str, args: Optional[List[str]] = None, container: str = None, echo: bool = True
+    cmd: str,
+    args: Optional[List[str]] = None,
+    container: str = None,
+    echo: bool = True,
+    logstatus: bool = False,
 ) -> None:
     running = False
     if container is None:
@@ -95,7 +113,9 @@ def crun(
         )
         return
 
-    run(f"docker exec -it {container} {cmd}", args, echo=echo)
+    return run(
+        f"docker exec -it {container} {cmd}", args, echo=echo, logstatus=logstatus
+    )
 
 
 def log(msg: str = "", color: Color = Color.endc) -> None:
