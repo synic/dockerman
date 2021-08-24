@@ -1,7 +1,7 @@
 import argparse
 from typing import Any, Callable, Optional
 
-Command = Callable[argparse.Namespace, Any]
+Command = Callable[[argparse.Namespace], Any]
 
 
 class Option:
