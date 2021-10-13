@@ -29,8 +29,8 @@ def command(
 ):
     def decorator(func: Command) -> Command:
         @functools.wraps(func)
-        def wrapper(args: argparse.Namespace) -> Any:
-            return func(args)
+        def wrapper(opts: argparse.Namespace, args: Optional[List[str]]) -> Any:
+            return func(opts=opts, args=args)
 
         name = func.__name__.replace("_", "-")
         parser = subparsers.add_parser(name, help=func.__doc__)
@@ -139,7 +139,7 @@ def error(msg: str) -> None:
 
 
 @command(hidden=True)
-def help(args: Optional[List[str]]) -> None:
+def help(opts: argparse.Namespace, args: Optional[List[str]]) -> None:
     if config.splash:
         log(config.splash, Color.debug)
         log()
@@ -172,18 +172,18 @@ def main(
         command = default
 
     if command and parsers[command].passthrough and len(sys.argv) > 1:
-        parsers[command](args)
+        parsers[command](opts=argparse.Namespace(), args=args)
         sys.exit(0)
 
     if not args:
-        help(None)
+        help(None, None)
         sys.exit(1)
 
-    args, extras = parser.parse_known_args(args)
+    options, extras = parser.parse_known_args(args)
 
     if extras:
-        help(None)
+        help(None, None)
         sys.exit(1)
 
-    if getattr(args, "func", None):
-        args.func(args)
+    if getattr(options, "func", None):
+        options.func(opts=options, args=extras)
