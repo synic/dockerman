@@ -29,8 +29,8 @@ def command(
 ):
     def decorator(func: Command) -> Command:
         @functools.wraps(func)
-        def wrapper(opts: argparse.Namespace, args: Optional[List[str]]) -> Any:
-            return func(opts=opts, args=args)
+        def wrapper(opts: argparse.Namespace) -> Any:
+            return func(opts=opts)
 
         name = func.__name__.replace("_", "-")
         parser = subparsers.add_parser(name, help=func.__doc__)
@@ -172,18 +172,21 @@ def main(
         command = default
 
     if command and parsers[command].passthrough and len(sys.argv) > 1:
-        parsers[command](opts=argparse.Namespace(), args=args)
+        options = argparse.Namespace()
+        options.args = args
+        parsers[command](options)
         sys.exit(0)
 
     if not args:
-        help(None, None)
+        help(None)
         sys.exit(1)
 
     options, extras = parser.parse_known_args(args)
 
     if extras:
-        help(None, None)
+        help(None)
         sys.exit(1)
 
     if getattr(options, "func", None):
-        options.func(opts=options, args=extras)
+        options.args = extras
+        options.func(options)
