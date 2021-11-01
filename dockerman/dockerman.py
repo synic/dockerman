@@ -139,7 +139,7 @@ def error(msg: str) -> None:
 
 
 @command(hidden=True)
-def help(opts: argparse.Namespace, args: Optional[List[str]]) -> None:
+def help(opts: argparse.Namespace) -> None:
     if config.splash:
         log(config.splash, Color.debug)
         log()
