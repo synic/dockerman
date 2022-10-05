@@ -22,7 +22,7 @@ def file(fn: str) -> Optional[File]:
 
 
 def command(
-    options: Union[List[Option], Tuple[Option]] = (),
+    *options: Option,
     passthrough: bool = False,
     default: bool = False,
     hidden: bool = False,
@@ -37,6 +37,7 @@ def command(
         parser.set_defaults(func=func)
 
         opts = [options] if not isinstance(options, (list, tuple)) else options
+
         for option in opts:
             parser.add_argument(*option.args, **option.kwargs)
 
