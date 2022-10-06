@@ -2,7 +2,7 @@ import argparse
 import functools
 import subprocess
 import sys
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple
 
 from .color import Color
 from .datatypes import Command, Config, File, Option
