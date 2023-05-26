@@ -17,7 +17,9 @@ A typical setup looks something like this:
    one that contains your python code. You can also use custom `@dm.command`
    functions to set up your docker cluster without docker-compose, if you want.
 2. A script that is the entrypoint for your management command. I typically use
-   `./do` in the project's root directory. It looks something like this:
+   `./do` in the project's root directory. It looks something like this (for a 
+   Django application, commands will be different depending on the language/framework
+   you are using and your goals):
 
    ```python
 
