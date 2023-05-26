@@ -1,10 +1,10 @@
-# Docker Management For Developing Web Applications
+# Management For Developing Applications in Docker
 
-This library is intended to make it easier to develop web applications when
+This library is intended to make it easier to develop applications when
 using docker. It allows you to set up initial docker configuration, and to
-execute commands inside the main docker container. It aims to be similar to
-[Fabric](https://fabfile.org), but for local development with docker
-applications.
+execute commands inside the main docker container from the host machine. It 
+aims to be similar to [Fabric](https://fabfile.org), but for local development 
+with docker applications.
 
 ## Getting Started
 
