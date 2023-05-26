@@ -1,4 +1,4 @@
-# Docker Management For Python Applications
+# Docker Management For Developing Web Applications
 
 This library is intended to make it easier to develop web applications when
 using docker. It allows you to set up initial docker configuration, and to
