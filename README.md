@@ -209,3 +209,9 @@ def hello(args):
         doot.fatal(f"Sorry, your name cannot be {args.name}. Get a new one.")
     print(f"Hello, {args.name}!")
 ```
+
+## Acknowledgements
+
+This project was named after the late great Doots. She will be missed.
+
+![Doots](docs/images/thebestdoots.jpg)
