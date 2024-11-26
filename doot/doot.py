@@ -9,7 +9,7 @@ from .datatypes import Config, File, Option
 
 parser = argparse.ArgumentParser(prog="./manage", add_help=False)
 subparsers = parser.add_subparsers()
-commands = {}
+tasks = {}
 config = Config()
 
 
@@ -24,14 +24,14 @@ def file(fn):
     return File(fn) if fn else None
 
 
-def command(*options, passthrough=False, hidden=False):
+def task(*options, passthrough=False, hidden=False):
     def decorator(func):
         @functools.wraps(func)
         def wrapper(opts=None):
-            call_command_func(func, opts)
+            call_task_func(func, opts)
 
         name = func.__name__.replace("_", "-")
-        func.command_name = name
+        func.task_name = name
         parser = subparsers.add_parser(
             name, help=func.__doc__, description=func.__doc__
         )
@@ -44,16 +44,16 @@ def command(*options, passthrough=False, hidden=False):
 
         wrapper.parser = parser
         wrapper.passthrough = passthrough
-        wrapper.command_name = name
+        wrapper.task_name = name
         wrapper.hidden = hidden
 
-        commands[name] = wrapper
+        tasks[name] = wrapper
         return wrapper
 
     return decorator
 
 
-cmd = command
+cmd = command = task
 
 
 def run(cmd, args=None, echo=True, logstatus=False):
@@ -143,26 +143,26 @@ def normalize_doc(doc):
     return doc
 
 
-@command(hidden=True)
+@task(hidden=True)
 def help():
     if config.splash:
         log(config.splash, Color.debug)
         log()
 
-    log(f"Usage: {config.prog_name} [command]\n")
-    log("Available commands:\n")
+    log(f"Usage: {config.prog_name} [task]\n")
+    log("Available tasks:\n")
 
-    for name, func in sorted(commands.items(), key=lambda x: x[0]):
+    for name, func in sorted(tasks.items(), key=lambda x: x[0]):
         if not func.hidden:
             log(f"  {name:<22} {normalize_doc(func.__doc__)}")
 
 
-def call_command_func(func, opts):
+def call_task_func(func, opts):
     num_args = len(inspect.signature(func).parameters.keys())
 
     if num_args > 1:
-        error("commands must be defined take 0 or 1 arguments")
-        info(f"command `{func.command_name}` was defined to take {num_args} arguments")
+        error("tasks must be defined take 0 or 1 arguments")
+        info(f"task `{func.task_name}` was defined to take {num_args} arguments")
         sys.exit(1)
 
     if num_args == 1:
@@ -177,24 +177,24 @@ def main(prog_name="./do", default_container=None, splash=""):
     config.default_container = default_container
     config.splash = splash
     args = sys.argv[1:]
-    command = None
+    task = None
 
-    for name, func in commands.items():
+    for name, func in tasks.items():
         func.parser.prog = f"{prog_name} {name}"
 
     try:
-        func = commands[args[0]]
+        func = tasks[args[0]]
         if func.passthrough:
             args = args[1:]
-        command = func.command_name
+        task = func.task_name
     except (KeyError, IndexError):
         help()
         sys.exit(1)
 
-    if command and commands[command].passthrough and len(sys.argv) > 1:
+    if task and tasks[task].passthrough and len(sys.argv) > 1:
         options = argparse.Namespace()
         options.args = args
-        commands[command](options)
+        tasks[task](options)
         sys.exit(0)
 
     if not args or (len(args) == 1 and args[0] == "-h"):
@@ -203,10 +203,10 @@ def main(prog_name="./do", default_container=None, splash=""):
     options, extras = parser.parse_known_args(args)
 
     if extras:
-        commands[command].parser.print_help()
+        tasks[task].parser.print_help()
         sys.exit(1)
 
     if not options.func:
-        fatal(f"function not defined for command `{command}`.")
+        fatal(f"function not defined for task `{task}`.")
 
-    call_command_func(options.func, options)
+    call_task_func(options.func, options)

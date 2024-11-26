@@ -1,5 +1,6 @@
 __all__ = [
     "command",
+    "task",
     "cmd",
     "crun",
     "file",
@@ -20,6 +21,7 @@ __all__ = [
 from .doot import (  # noqa
     command,
     cmd,
+    task,
     crun,
     file,
     log,

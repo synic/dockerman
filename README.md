@@ -30,43 +30,43 @@ import os
 
 import doot as do
 
-@do.cmd(passthrough=True)
+@do.task(passthrough=True)
 def bash(opts):
     """Bash shell on the web container."""
     do.crun("bash", opts.args)
 
 
-@do.cmd()
+@do.task()
 def start():
     """Start all services."""
     do.run("docker-compose up -d")
 
 
-@do.cmd()
+@do.task()
 def stop():
     """Stop all services."""
     do.run("docker-compose stop")
 
 
-@do.cmd()
+@do.task()
 def dbshell():
     """Execute a database shell."""
     do.crun("psql -U myuser mydatabase", container="database")
 
 
-@do.cmd()
+@do.task()
 def shell():
     """Open a django shell on the web container."""
     do.crun("django-admin shell")
 
 
-@do.cmd(passthrough=True)
+@do.task(passthrough=True)
 def manage(opts):
     """Run a django management command."""
     do.crun("django-admin", opts.args)
 
 
-@do.cmd(
+@do.task(
     do.opt("-n", "--name", help="Container name", required=True),
     do.opt("-d", "--detach", help="Detach when running `up`", action="store_true"),
 )
@@ -83,14 +83,14 @@ if __name__ == "__main__":
     do.main(default_container="web")
 ```
 
-With this setup, you can run commands like `./do manage`, `./do shell`, etc.
+With this setup, you can run tasks like `./do manage`, `./do shell`, etc.
 
 Running `./do -h` will show output like this:
 
 ```
-Usage: ./do [command]
+Usage: ./do [task]
 
-Available commands:
+Available tasks:
 
   bash                   Bash shell on the web container
   dbshell                Execute a database shell
@@ -111,7 +111,7 @@ When using `doot`, the `doot.run` function runs a command locally. You can use
 the `doot.crun` function to run a command on a docker container, like so:
 
 ```python
-@do.cmd(passthrough=True)
+@do.task(passthrough=True)
 def manage(opts):
     do.crun("django-admin shell", container="api", opts.args)
 ```
@@ -145,23 +145,24 @@ sys.path.append("./lib/doot")
 
 ## Doot Functions
 
-### `doot.cmd`
+### `doot.task`
 
-This is a decorator that turns a function into a command. The command will have
-the same name as the function it decorates, and the docstring will be the
-documentation that appears when you type `./do help` or `./do help [command]`.
-All underscores will be converted to hyphens in the resulting command name.
+This is a decorator that turns a function into a task. The task will have
+the same name as the function it decorates (changing `_` to `-`), and the
+docstring will be the documentation that appears when you type `./do help` or
+`./do help [task]`. All underscores will be converted to hyphens in the
+resulting task name.
 
 If you specify `passthrough=True`, all extra command line arguments will be
 passed to any `doot.crun` or `doot.run` statements executed within the function
-(this is the purpose of the command function receiving the `opts` parameter,
+(this is the purpose of the task function receiving the `opts` parameter,
 and passing `opts.args` parameter to `doot.crun` and `doot.run`).
 
 For example, if you'd like to run Django management commands in the web
 container:
 
 ```python
-@doot.cmd(passthrough=True)
+@doot.task(passthrough=True)
 def manage(opts):
     """Run Django management commands."""
     doot.crun("django-admin", opts.args)
@@ -190,8 +191,8 @@ function.
 
 ### `doot.opt`
 
-You can pass one or more `doot.opt` arguments to the `doot.cmd` decorator.
-These will set up argument options for your command, using the `argparse`
+You can pass one or more `doot.opt` arguments to the `doot.task` decorator.
+These will set up argument options for your task, using the `argparse`
 module. They are passed directly to `parser.add_argument`, so they have the
 same parameters. See
 https://docs.python.org/3/library/argparse.html#the-add-argument-method for
@@ -201,7 +202,7 @@ An example:
 
 ```python
 
-@doot.cmd(doot.opt("--name", dest="name", help="Your name"))
+@doot.task(doot.opt("--name", dest="name", help="Your name"))
 def hello(opts):
     print(f"Hello, {opts.name}!")
 ```
@@ -217,7 +218,7 @@ type of message you want to show. For example:
 specify the exit code by passing `status`, the default is `1`).
 
 ```python
-@doot.cmd(doot.opt("--name", required=True))
+@doot.task(doot.opt("--name", required=True))
 def hello(opts):
     if opts.name.lower() in ("tyler", "steve", "james"):
         doot.fatal(f"Sorry, your name cannot be {opts.name}. Get a new one.")
