@@ -25,13 +25,10 @@ def command(*options, passthrough=False, hidden=False):
     def decorator(func):
         @functools.wraps(func)
         def wrapper(opts=None):
-            num_args = len(inspect.signature(func).parameters.keys())
-            if num_args == 0:
-                return func()
-            else:
-                return func(opts)
+            call_command_func(func, opts)
 
         name = func.__name__.replace("_", "-")
+        func.command_name = name
         parser = subparsers.add_parser(
             name, help=func.__doc__, description=func.__doc__
         )
@@ -151,6 +148,20 @@ def help():
             log(f"  {name:<22} {normalize_doc(func.__doc__)}")
 
 
+def call_command_func(func, opts):
+    num_args = len(inspect.signature(func).parameters.keys())
+
+    if num_args > 1:
+        error("commands must be defined take 0 or 1 arguments")
+        info(f"command `{func.command_name}` was defined to take {num_args} arguments")
+        sys.exit(1)
+
+    if num_args == 1:
+        func(opts)
+    else:
+        func()
+
+
 def main(prog_name="./do", default_container=None, splash=""):
     parser.prog = prog_name
     config.prog_name = prog_name
@@ -186,17 +197,7 @@ def main(prog_name="./do", default_container=None, splash=""):
         commands[command].parser.print_help()
         sys.exit(1)
 
-    num_args = len(inspect.signature(options.func).parameters.keys())
+    if not options.func:
+        fatal(f"function not defined for command `{command}`.")
 
-    if num_args > 1:
-        error("commands must be defined take 0 or 1 arguments")
-        info(f"command `{command}` was defined to take {num_args} arguments")
-        sys.exit(1)
-
-    if getattr(options, "func", None):
-        options.args = extras
-
-        if num_args == 1:
-            options.func(options)
-        else:
-            options.func()
+    call_command_func(options.func, options)
