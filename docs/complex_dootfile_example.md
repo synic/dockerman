@@ -213,9 +213,7 @@ def get_active_branch_name():
             return line.partition("refs/heads/")[2]
 
 
-@do.task(
-    do.opt("-p", "--push", action="store_true", help="Execute a git push first"),
-)
+@do.task(do.opt("-p", "--push", action="store_true", help="Execute a git push first"))
 def pr(opts):
     """Opens a PR with the current branch.
 
