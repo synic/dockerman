@@ -17,6 +17,9 @@ def option(*args, **kwargs):
     return Option(*args, **kwargs)
 
 
+opt = option
+
+
 def file(fn):
     return File(fn) if fn else None
 
@@ -48,6 +51,9 @@ def command(*options, passthrough=False, hidden=False):
         return wrapper
 
     return decorator
+
+
+cmd = command
 
 
 def run(cmd, args=None, echo=True, logstatus=False):
@@ -116,6 +122,9 @@ def info(msg):
 
 def warning(msg):
     log(msg, Color.warning)
+
+
+warn = warning
 
 
 def error(msg):

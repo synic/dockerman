@@ -1,5 +1,6 @@
 __all__ = [
     "command",
+    "cmd",
     "crun",
     "file",
     "log",
@@ -8,14 +9,17 @@ __all__ = [
     "info",
     "fatal",
     "warning",
+    "warn",
     "error",
     "main",
+    "opt",
     "option",
     "run",
 ]
 
 from .doot import (  # noqa
     command,
+    cmd,
     crun,
     file,
     log,
@@ -24,8 +28,10 @@ from .doot import (  # noqa
     help,
     info,
     warning,
+    warn,
     error,
     main,
     option,
+    opt,
     run,
 )

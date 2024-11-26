@@ -30,45 +30,45 @@ import os
 
 import doot as do
 
-@do.command(passthrough=True)
+@do.cmd(passthrough=True)
 def bash(opts):
     """Bash shell on the web container."""
     do.crun("bash", opts.args)
 
 
-@do.command()
+@do.cmd()
 def start():
     """Start all services."""
     do.run("docker-compose up -d")
 
 
-@do.command()
+@do.cmd()
 def stop():
     """Stop all services."""
     do.run("docker-compose stop")
 
 
-@do.command()
+@do.cmd()
 def dbshell():
     """Execute a database shell."""
     do.crun("psql -U myuser mydatabase", container="database")
 
 
-@do.command()
+@do.cmd()
 def shell():
     """Open a django shell on the web container."""
     do.crun("django-admin shell")
 
 
-@do.command(passthrough=True)
+@do.cmd(passthrough=True)
 def manage(opts):
     """Run a django management command."""
     do.crun("django-admin", opts.args)
 
 
-@do.command(
-    do.option("-n", "--name", help="Container name", required=True),
-    do.option("-d", "--detach", help="Detach when running `up`", action="store_true"),
+@do.cmd(
+    do.opt("-n", "--name", help="Container name", required=True),
+    do.opt("-d", "--detach", help="Detach when running `up`", action="store_true"),
 )
 def reset_container(opts):
     """Reset a container."""
@@ -111,7 +111,7 @@ When using `doot`, the `doot.run` function runs a command locally. You can use
 the `doot.crun` function to run a command on a docker container, like so:
 
 ```python
-@do.command(passthrough=True)
+@do.cmd(passthrough=True)
 def manage(opts):
     do.crun("django-admin shell", container="api", opts.args)
 ```
@@ -145,7 +145,7 @@ sys.path.append("./lib/doot")
 
 ## Doot Functions
 
-### `doot.command`
+### `doot.cmd`
 
 This is a decorator that turns a function into a command. The command will have
 the same name as the function it decorates, and the docstring will be the
@@ -161,7 +161,7 @@ For example, if you'd like to run Django management commands in the web
 container:
 
 ```python
-@doot.command(passthrough=True)
+@doot.cmd(passthrough=True)
 def manage(opts):
     """Run Django management commands."""
     doot.crun("django-admin", opts.args)
@@ -188,9 +188,9 @@ it to run on the "web" container. If you do not pass `container`, it will use
 the container specified with `default_container` passed to the `doot.main`
 function.
 
-### `doot.option`
+### `doot.opt`
 
-You can pass one or more `doot.option` arguments to the `doot.command` decorator.
+You can pass one or more `doot.opt` arguments to the `doot.cmd` decorator.
 These will set up argument options for your command, using the `argparse`
 module. They are passed directly to `parser.add_argument`, so they have the
 same parameters. See
@@ -201,12 +201,12 @@ An example:
 
 ```python
 
-@doot.command(doot.option("--name", dest="name", help="Your name"))
+@doot.cmd(doot.opt("--name", dest="name", help="Your name"))
 def hello(opts):
     print(f"Hello, {opts.name}!")
 ```
 
-### `doot.log`, `doot.info`, `doot.warning`, `doot.error`
+### `doot.log`, `doot.info`, `doot.warn`, `doot.error`
 
 These are logging statements. Each one has it's own color indicative of the
 type of message you want to show. For example:
@@ -217,7 +217,7 @@ type of message you want to show. For example:
 specify the exit code by passing `status`, the default is `1`).
 
 ```python
-@doot.command(doot.option("--name", required=True))
+@doot.cmd(doot.opt("--name", required=True))
 def hello(opts):
     if opts.name.lower() in ("tyler", "steve", "james"):
         doot.fatal(f"Sorry, your name cannot be {opts.name}. Get a new one.")

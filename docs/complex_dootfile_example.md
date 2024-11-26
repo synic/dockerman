@@ -40,13 +40,13 @@ class Containers:
 cont = Containers()
 
 
-@do.command(passthrough=True)
+@do.cmd(passthrough=True)
 def bash(opts):
     """Bash shell on the api container."""
     do.crun("bash", opts.args)
 
 
-@do.command()
+@do.cmd()
 def start():
     """Start all services."""
     data = subprocess.check_output(["docker", "network", "list", "-f", "name=awesome"])
@@ -55,25 +55,25 @@ def start():
     do.run("docker-compose up -d")
 
 
-@do.command(passthrough=True)
+@do.cmd(passthrough=True)
 def logs(opts):
     """Show logs for main api container."""
     do.run(f"docker logs -f -n 1000 {cont.api}", opts.args)
 
 
-@do.command()
+@do.cmd()
 def stop():
     """Stop all services."""
     do.run("docker-compose stop")
 
 
-@do.command()
+@do.cmd()
 def db():
     """Execute a database shell."""
     do.crun("psql -U postgres postgres", container=cont.db)
 
 
-@do.command()
+@do.cmd()
 def debug():
     """Attach to api container for debugging."""
     do.warning(f"Attaching to `{cont.api}`. Type CTRL-p CTRL-q to exit.")
@@ -81,37 +81,37 @@ def debug():
     do.run(f"docker attach {cont.api}")
 
 
-@do.command(passthrough=True)
+@do.cmd(passthrough=True)
 def lint(opts):
     """Lint the code."""
     do.crun("yarn lint", opts.args)
 
 
-@do.command(passthrough=True)
+@do.cmd(passthrough=True)
 def typeorm(opts):
     """Run migration commands."""
     do.crun("yarn typeorm:cli", opts.args)
 
 
-@do.command()
+@do.cmd()
 def migrate(opts):
     """Run all migrations."""
     do.crun("yarn typeorm:cli migration:run", opts.args)
 
 
-@do.command(passthrough=True)
+@do.cmd(passthrough=True)
 def yarn(opts):
     """Run yarn commands."""
     do.crun("yarn", opts.args)
 
 
-@do.command(passthrough=True)
+@do.cmd(passthrough=True)
 def manage(opts):
     """Run management commands."""
     do.crun("yarn manage", opts.args)
 
 
-@do.command(do.option("-n", "--name", help="migration file base name"))
+@do.cmd(do.opt("-n", "--name", help="migration file base name"))
 def createmigration(opts):
     """Create a migration with a name."""
     do.crun(
@@ -121,7 +121,7 @@ def createmigration(opts):
     )
 
 
-@do.command(do.option("-n", "--name", help="migration file base name"))
+@do.cmd(do.opt("-n", "--name", help="migration file base name"))
 def generatemigration(opts):
     """Generate a migration with a name."""
     do.crun(
@@ -157,9 +157,9 @@ def get_latest_image_data(environment="staging"):
     return latest_tag
 
 
-@do.command(
-    do.option("-t", "--tag", default=None, help="Optional staging tag"),
-    do.option("-d", "--diff", action="store_true", help="Show diff"),
+@do.cmd(
+    do.opt("-t", "--tag", default=None, help="Optional staging tag"),
+    do.opt("-d", "--diff", action="store_true", help="Show diff"),
 )
 def release(opts):
     """Release the staging image to production."""
@@ -213,8 +213,8 @@ def get_active_branch_name():
             return line.partition("refs/heads/")[2]
 
 
-@do.command(
-    do.option("-p", "--push", action="store_true", help="Execute a git push first"),
+@do.cmd(
+    do.opt("-p", "--push", action="store_true", help="Execute a git push first"),
 )
 def pr(opts):
     """Opens a PR with the current branch.
@@ -240,7 +240,7 @@ def pr(opts):
     os.system(f"{cmd} {url}")
 
 
-@do.command()
+@do.cmd()
 def pod():
     """Shell into a kubernetes pod."""
     pod = subprocess.check_output(
@@ -262,7 +262,7 @@ def pod():
     do.run(f"kubectl exec -n awesome -ti {str(pod)} -- /bin/bash")
 
 
-@do.command()
+@do.cmd()
 def build_essential(opts):
     """Install build deps for native node packages."""
     do.crun("apt update", opts.args)
