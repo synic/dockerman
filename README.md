@@ -6,6 +6,14 @@ execute commands inside the main docker container from the host machine. It
 aims to be similar to [Fabric](https://fabfile.org), but for local development
 with docker applications.
 
+## Installation
+
+```bash
+$ pip install git+https://github.com/synic/dockerman
+```
+
+Or, you can use the [Zero Install](#zero-install) option as described below.
+
 ## Getting Started
 
 A typical setup looks something like this:
@@ -95,6 +103,29 @@ Available commands:
   shell                  Open a django shell on the web container.
   start                  Start all services.
   stop                   Stop all services.
+```
+
+## Zero Install Option
+
+On Mac and Linux, you can set this up to "just work" without any extra
+installation (assuming python is installed, which it usually is).
+
+In the repository you want to use this in, run the following:
+
+```bash
+$ mkdir -p lib
+$ git submodule add https://github.com/synic/dockerman lib/dockerman
+```
+
+Then, at the top of your `do` script, before the dockerman import, you can add
+the following:
+
+```python
+if not os.path.isfile("./lib/dockerman/dockerman/__init__.py"):
+    print("`dockerman` not found; run `git submodule update --init`")
+    sys.exit(1)
+
+sys.path.append("./lib/dockerman")
 ```
 
 ## Concepts
