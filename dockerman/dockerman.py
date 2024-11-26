@@ -29,7 +29,8 @@ def command(*options, passthrough=False, default=False, hidden=False):
 
         name = func.__name__.replace("_", "-")
         func.command_name = name
-        parser = subparsers.add_parser(name, help=func.__doc__)
+        docs = (func.__doc__ or "").split("\n")[0]
+        parser = subparsers.add_parser(name, help=docs)
         parser.set_defaults(func=func)
 
         opts = [options] if not isinstance(options, (list, tuple)) else options
@@ -140,7 +141,8 @@ def help():
 
     for name, func in sorted(parsers.items(), key=lambda x: x[0]):
         if not func.hidden:
-            log(f"  {name:<22} {func.__doc__}")
+            docs = (func.__doc__ or "").split("\n")[0]
+            log(f"  {name:<22} {docs}")
 
 
 def main(prog_name="./do", default_container=None, splash=""):
