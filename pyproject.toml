@@ -1,6 +1,19 @@
-[build-system]
-requires = [
-    'setuptools>=42',
-    'wheel',
+[project]
+name = "doot"
+description = "Simple zero dependency task runner"
+version = "1.0.0"
+requires-python = ">= 3.8"
+readme = "README.md"
+license = { file = LICENSE" }
+keywords = ["task", "runner"]
+authors = [
+  {name = "Adam Olsen", email = "arolsen@gmail.com"},
 ]
-build-backend = 'setuptools.build_meta'
+
+[project.urls]
+Homepage = "https://github.com/synic/doot"
+Repository = "https://github.com/synic/doot"
+
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"

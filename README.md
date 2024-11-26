@@ -1,91 +1,79 @@
-# Management For Developing Applications in Docker
+# Simple Zero Dependency Task Runner
 
-This library is intended to make it easier to develop applications when
-using docker. It allows you to set up initial docker configuration, and to
-execute commands inside the main docker container from the host machine. It
-aims to be similar to [Fabric](https://fabfile.org), but for local development
-with docker applications.
+This is a simple, zero dependency (except Python 3, which comes installed on
+most *nix operating systems) task runner. Similar to `make`, but meant to be
+used for non-C style projects. Comes out of the box with simple docker support.
 
 ## Installation
 
 ```bash
-$ pip install git+https://github.com/synic/dockerman
+$ pip install git+https://github.com/synic/doot
 ```
 
 Or, you can use the [Zero Install](#zero-install) option as described below.
 
 ## Getting Started
 
-A typical setup looks something like this:
+In your project root directory, create a file (I usually call it `do`, but it
+can be anything you want):
 
-1. A `docker-compose.yml` (or a docker setup that has been created manually)
-   with at least one "main" python container. For instance, if you are
-   developing a web application, you might have a `redis` container, a
-   `database` container, and a `web` container, and the `web` container is the
-   one that contains your python code. You can also use custom `@dm.command`
-   functions to set up your docker cluster without docker-compose, if you want.
-2. A script that is the entrypoint for your management command. I typically use
-   `./do` in the project's root directory. It looks something like this (for a
-   Django application, commands will be different depending on the language/framework
-   you are using and your goals):
+```python
 
-   ```python
+#!/usr/bin/env python
 
-    #!/usr/bin/env python
+import os
 
-    import os
+import doot as do
 
-    import dockerman as dm
-
-    @dm.command(passthrough=True)
-    def bash(args):
-        """Bash shell on the web container."""
-        dm.crun("bash", args)
+@do.command(passthrough=True)
+def bash(args):
+    """Bash shell on the web container."""
+    do.crun("bash", args)
 
 
-    @dm.command()
-    def start():
-        """Start all services."""
-        dm.run("docker-compose up -d")
+@do.command()
+def start():
+    """Start all services."""
+    do.run("docker-compose up -d")
 
 
-    @dm.command()
-    def stop():
-        """Stop all services."""
-        dm.run("docker-compose stop")
+@do.command()
+def stop():
+    """Stop all services."""
+    do.run("docker-compose stop")
 
 
-    @dm.command()
-    def dbshell():
-        """Execute a database shell."""
-        dm.crun("psql -U myuser mydatabase", container="database")
+@do.command()
+def dbshell():
+    """Execute a database shell."""
+    do.crun("psql -U myuser mydatabase", container="database")
 
 
-    @dm.command()
-    def shell():
-        """Open a django shell on the web container."""
-        dm.crun("django-admin shell", args)
+@do.command()
+def shell():
+    """Open a django shell on the web container."""
+    do.crun("django-admin shell", args)
 
 
-    @dm.command(passthrough=True)
-    def manage(args):
-        """Run a django management command."""
-        dm.crun("django-admin", args)
+@do.command(passthrough=True)
+def manage(args):
+    """Run a django management command."""
+    do.crun("django-admin", args)
 
 
-    @dm.command(
-        dm.option('--name', help='Container name'),
-    )
-    def reset_container(args):
-        """Reset a container."""
-        dm.run(f"docker-compose stop {args.name}")
-        dm.run(f"docker-compose rm {args.name}")
-        dm.run("docker-compose up -d")
+@do.command(
+    do.option('--name', help='Container name'),
+)
+def reset_container(args):
+    """Reset a container."""
+    do.run(f"docker-compose stop {args.name}")
+    do.run(f"docker-compose rm {args.name}")
+    do.run("docker-compose up -d")
 
 
-    if __name__ == "__main__":
-        dm.main(default_container="web")
-     ```
+if __name__ == "__main__":
+    do.main(default_container="web")
+```
 
 With this setup, you can run commands like `./do help`, `./do shell`, etc.
 
@@ -105,6 +93,21 @@ Available commands:
   stop                   Stop all services.
 ```
 
+## Docker support
+
+When using `doot`, the `doot.run` function runs a command locally. You can use
+the `doot.crun` function to run a command on a docker container, like so:
+
+```python
+@do.command(passthrough=True)
+def manage(args):
+    do.crun("django-admin shell", container="api", args)
+```
+
+You can set up a default container by passing `default_container` to `doot.main`,
+in which case, if you do not pass `container` to `doot.crun`, the default
+container will be used.
+
 ## Zero Install Option
 
 On Mac and Linux, you can set this up to "just work" without any extra
@@ -114,23 +117,23 @@ In the repository you want to use this in, run the following:
 
 ```bash
 $ mkdir -p lib
-$ git submodule add https://github.com/synic/dockerman lib/dockerman
+$ git submodule add https://github.com/synic/doot lib/doot
 ```
 
-Then, at the top of your `do` script, before the dockerman import, you can add
+Then, at the top of your `do` script, before the doot import, you can add
 the following:
 
 ```python
-if not os.path.isfile("./lib/dockerman/dockerman/__init__.py"):
-    print("`dockerman` not found; run `git submodule update --init`")
+if not os.path.isfile("./lib/doot/doot/__init__.py"):
+    print("`doot` not found; run `git submodule update --init`")
     sys.exit(1)
 
-sys.path.append("./lib/dockerman")
+sys.path.append("./lib/doot")
 ```
 
 ## Concepts
 
-### `dm.command`
+### `doot.command`
 
 This is a decorator that turns a function into a command. The command will have
 the same name as the function it decorates, and the docstring will be the
@@ -138,18 +141,18 @@ documentation that appears when you type `./do help` or `./do help [command]`.
 All underscores will be converted to hyphens in the resulting command name.
 
 If you specify `passthrough=True`, all extra command line arguments will be
-passed to any `dm.crun` or `dm.run` statements executed within the function
+passed to any `doot.crun` or `doot.run` statements executed within the function
 (this is the purpose of the command function receiving the `args` parameter,
-and passing that same `args` parameter to `dm.crun` and `dm.run`).
+and passing that same `args` parameter to `doot.crun` and `doot.run`).
 
 For example, if you'd like to run Django management commands in the web
 container:
 
 ```python
-@dm.command(passthrough=True)
+@doot.command(passthrough=True)
 def manage(args):
     """Run Django management commands."""
-    dm.crun("django-admin", args)
+    doot.crun("django-admin", args)
 ```
 
 Then when you run something like:
@@ -163,35 +166,36 @@ through to `django-admin` on the container.
 
 #### Default Commands
 
-Another possible argument to `@dm.command` is `default=True`. This will cause
+Another possible argument to `@doot.command` is `default=True`. This will cause
 the system to use this command for everything that doesn't match any other
 command. For instance, instead of defining a `shell` command for django-admin,
 you could do the following:
 
 ```python
-@dm.command(passthrough=True, default=True)
+@doot.command(passthrough=True, default=True)
 def manage(args):
     """Run Django management commands."""
-    dm.crun("django-admin", args)
+    doot.crun("django-admin", args)
 ```
 
 Then, if you type `./do shell` and there is no matching `shell` command
 defined, it will act as though you typed `./do manage shell`.
 
-### `dm.run`
+### `doot.run`
 
 This runs a command on the host. Things like
-`dm.run('docker network add test')` are typical.
+`doot.run('docker network add test')` are typical.
 
-### `dm.crun`
+### `doot.crun`
 
 This runs a command in a docker container. Passing `container="web"` will tell
 it to run on the "web" container. If you do not pass `container`, it will use
-the default container specified in `dm.set_default_container`.
+the container specified with `default_container` passed to the `doot.main`
+function.
 
-### `dm.option`
+### `doot.option`
 
-You can pass one or more `dm.option` arguments to the `dm.command` decorator.
+You can pass one or more `doot.option` arguments to the `doot.command` decorator.
 These will set up argument options for your command, using the `argparse`
 module. They are passed directly to `parser.add_argument`, so they have the
 same parameters.
@@ -200,21 +204,23 @@ An example:
 
 ```python
 
-@dm.command(@dm.option("--name", dest="name", help="Your name"))
+@doot.command(@doot.option("--name", dest="name", help="Your name"))
 def hello(args):
     print(f"Hello, {args.name}!")
 ```
 
-### `dm.log`, `dm.info`, `dm.warning`, `dm.error`
+### `doot.log`, `doot.info`, `doot.warning`, `doot.error`
 
 These are logging statements. Each one has it's own color indicative of the
 type of message you want to show. For example:
 
+`doot.fatal(msg)` will call `doot.error(msg)` and then `sys.exit(1)` (you can
+specify the exit code by passing `status`, the default is `1`).
 
 ```python
-@dm.command(@dm.option("--name"))
+@doot.command(@doot.option("--name"))
 def hello(args):
     if args.name.lower() in ("tyler", "steve", "james"):
-        dm.fatal(f"Sorry, your name cannot be {args.name}. Get a new one.")
+        doot.fatal(f"Sorry, your name cannot be {args.name}. Get a new one.")
     print(f"Hello, {args.name}!")
 ```

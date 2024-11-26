@@ -13,7 +13,7 @@ __all__ = [
     "run",
 ]
 
-from .dockerman import (  # noqa
+from .doot import (  # noqa
     command,
     crun,
     file,
