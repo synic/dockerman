@@ -6,11 +6,16 @@ used for non-C style projects. Comes out of the box with simple docker support.
 
 ## Installation
 
+I prefer using the [Zero Install](#zero-install-option) option, as doing it
+this way means that your coworkers don't have to install anything extra to get
+their runner working (assuming they already have Python installed, which is
+usually true).
+
+Alternatively, you can install it as a library:
+
 ```bash
 $ pip install git+https://github.com/synic/doot
 ```
-
-Or, you can use the [Zero Install](#zero-install) option as described below.
 
 ## Getting Started
 
@@ -62,13 +67,16 @@ def manage(opts):
 
 
 @do.command(
-    do.option('--name', help='Container name'),
+    do.option("-n", "--name", help="Container name", required=True),
+    do.option("-d", "--detach", help="Detach when running `up`", action="store_true"),
 )
 def reset_container(opts):
     """Reset a container."""
     do.run(f"docker-compose stop {opts.name}")
     do.run(f"docker-compose rm {opts.name}")
-    do.run("docker-compose up -d")
+
+    extra = "-d" if opts.detach else ""
+    do.run(f"docker-compose up {extra}")
 
 
 if __name__ == "__main__":

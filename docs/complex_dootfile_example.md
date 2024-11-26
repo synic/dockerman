@@ -242,7 +242,7 @@ def pr(opts):
 
 @do.command()
 def pod():
-    """Shell into a kubernetes pricing pod."""
+    """Shell into a kubernetes pod."""
     pod = subprocess.check_output(
         [
             "kubectl",
