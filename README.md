@@ -2,8 +2,8 @@
 
 This library is intended to make it easier to develop applications when
 using docker. It allows you to set up initial docker configuration, and to
-execute commands inside the main docker container from the host machine. It 
-aims to be similar to [Fabric](https://fabfile.org), but for local development 
+execute commands inside the main docker container from the host machine. It
+aims to be similar to [Fabric](https://fabfile.org), but for local development
 with docker applications.
 
 ## Getting Started
@@ -17,7 +17,7 @@ A typical setup looks something like this:
    one that contains your python code. You can also use custom `@dm.command`
    functions to set up your docker cluster without docker-compose, if you want.
 2. A script that is the entrypoint for your management command. I typically use
-   `./do` in the project's root directory. It looks something like this (for a 
+   `./do` in the project's root directory. It looks something like this (for a
    Django application, commands will be different depending on the language/framework
    you are using and your goals):
 
@@ -28,11 +28,6 @@ A typical setup looks something like this:
     import os
 
     import dockerman as dm
-
-    # enable buildkit
-    os.environ["DOCKER_BUILDKIT"] = "1"
-    os.environ["COMPOSE_DOCKER_CLI_BUILD"] = "1"
-
 
     @dm.command(passthrough=True)
     def bash(args):
@@ -174,7 +169,6 @@ type of message you want to show. For example:
 @dm.command(@dm.option("--name"))
 def hello(args):
     if args.name.lower() in ("tyler", "steve", "james"):
-        dm.error(f"Sorry, your name cannot be {args.name}. Get a new one.")
-        sys.exit(1)
+        dm.fatal(f"Sorry, your name cannot be {args.name}. Get a new one.")
     print(f"Hello, {args.name}!")
 ```

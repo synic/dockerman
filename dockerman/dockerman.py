@@ -2,34 +2,28 @@ import argparse
 import functools
 import subprocess
 import sys
-from typing import Any, Dict, List, Optional, Tuple
 
 from .color import Color
-from .datatypes import Command, Config, File, Option
+from .datatypes import Config, File, Option
 
 parser = argparse.ArgumentParser(prog="./manage", add_help=False)
 subparsers = parser.add_subparsers()
-parsers: Dict[str, argparse.ArgumentParser] = {}
+parsers = {}
 config = Config()
 
 
-def option(*args: Any, **kwargs: Any) -> Option:
+def option(*args, **kwargs):
     return Option(*args, **kwargs)
 
 
-def file(fn: str) -> Optional[File]:
+def file(fn):
     return File(fn) if fn else None
 
 
-def command(
-    *options: Option,
-    passthrough: bool = False,
-    default: bool = False,
-    hidden: bool = False,
-):
-    def decorator(func: Command) -> Command:
+def command(*options, passthrough=False, default=False, hidden=False):
+    def decorator(func):
         @functools.wraps(func)
-        def wrapper(opts: argparse.Namespace) -> Any:
+        def wrapper(opts):
             return func(opts=opts)
 
         name = func.__name__.replace("_", "-")
@@ -56,12 +50,7 @@ def command(
     return decorator
 
 
-def run(
-    cmd: str,
-    args: Optional[List[str]] = None,
-    echo: bool = True,
-    logstatus: bool = False,
-) -> None:
+def run(cmd, args=None, echo=True, logstatus=False):
     args = " ".join([f'"{arg}"' if " " in arg else arg for arg in args]) if args else ""
     command = f"{cmd} {args}"
     if echo:
@@ -79,13 +68,7 @@ def run(
     return code
 
 
-def crun(
-    cmd: str,
-    args: Optional[List[str]] = None,
-    container: str = None,
-    echo: bool = True,
-    logstatus: bool = False,
-) -> None:
+def crun(cmd, args=None, container=None, echo=True, logstatus=False):
     running = False
     if container is None:
         container = config.default_container
@@ -119,28 +102,33 @@ def crun(
     )
 
 
-def log(msg: str = "", color: Color = Color.endc) -> None:
+def log(msg="", color=Color.endc):
     print(f"{color.value}{msg}{Color.endc.value}")
 
 
-def logcmd(msg: str) -> None:
+def logcmd(msg):
     log(f" -> {msg}", Color.debug)
 
 
-def info(msg: str) -> None:
+def info(msg):
     log(msg, Color.info)
 
 
-def warning(msg: str) -> None:
+def warning(msg):
     log(msg, Color.warning)
 
 
-def error(msg: str) -> None:
+def error(msg):
     log(f"ERROR: {msg}", Color.error)
 
 
+def fatal(msg, status=1):
+    error(msg)
+    sys.exit(status)
+
+
 @command(hidden=True)
-def help(opts: argparse.Namespace) -> None:
+def help(_):
     if config.splash:
         log(config.splash, Color.debug)
         log()
@@ -153,9 +141,7 @@ def help(opts: argparse.Namespace) -> None:
             log(f"  {name:<22} {func.__doc__}")
 
 
-def main(
-    prog_name: str = "./do", default_container: Optional[str] = None, splash: str = ""
-) -> None:
+def main(prog_name="./do", default_container=None, splash=""):
     parser.prog = prog_name
     config.prog_name = prog_name
     config.default_container = default_container
