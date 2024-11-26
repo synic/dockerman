@@ -1,4 +1,4 @@
-# Simple Zero Dependency Task Runner
+# Doot: Simple Zero Dependency Task Runner
 
 This is a simple, zero dependency (except Python 3, which comes installed on
 most *nix operating systems) task runner. Similar to `make`, but meant to be
@@ -92,6 +92,10 @@ Available commands:
   start                  Start all services
   stop                   Stop all services
 ```
+
+### Complex Example
+
+To see a more complex example, look [here](docs/complex_dootfile_example.md)
 
 ## Docker support
 
