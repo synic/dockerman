@@ -191,7 +191,7 @@ An example:
 
 ```python
 
-@doot.command(@doot.option("--name", dest="name", help="Your name"))
+@doot.command(doot.option("--name", dest="name", help="Your name"))
 def hello(args):
     print(f"Hello, {args.name}!")
 ```
@@ -207,7 +207,7 @@ type of message you want to show. For example:
 specify the exit code by passing `status`, the default is `1`).
 
 ```python
-@doot.command(@doot.option("--name"))
+@doot.command(doot.option("--name"))
 def hello(args):
     if args.name.lower() in ("tyler", "steve", "james"):
         doot.fatal(f"Sorry, your name cannot be {args.name}. Get a new one.")
