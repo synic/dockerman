@@ -9,7 +9,7 @@ from .datatypes import Config, File, Option
 
 parser = argparse.ArgumentParser(prog="./manage", add_help=False)
 subparsers = parser.add_subparsers()
-parsers = {}
+commands = {}
 config = Config()
 
 
@@ -21,16 +21,20 @@ def file(fn):
     return File(fn) if fn else None
 
 
-def command(*options, passthrough=False, default=False, hidden=False):
+def command(*options, passthrough=False, hidden=False):
     def decorator(func):
         @functools.wraps(func)
-        def wrapper(opts):
-            return func(opts)
+        def wrapper(opts=None):
+            num_args = len(inspect.signature(func).parameters.keys())
+            if num_args == 0:
+                return func()
+            else:
+                return func(opts)
 
         name = func.__name__.replace("_", "-")
-        func.command_name = name
-        docs = (func.__doc__ or "").split("\n")[0]
-        parser = subparsers.add_parser(name, help=docs)
+        parser = subparsers.add_parser(
+            name, help=func.__doc__, description=func.__doc__
+        )
         parser.set_defaults(func=func)
 
         opts = [options] if not isinstance(options, (list, tuple)) else options
@@ -38,16 +42,12 @@ def command(*options, passthrough=False, default=False, hidden=False):
         for option in opts:
             parser.add_argument(*option.args, **option.kwargs)
 
+        wrapper.parser = parser
         wrapper.passthrough = passthrough
         wrapper.command_name = name
         wrapper.hidden = hidden
 
-        if default:
-            if config.default_command:
-                raise ValueError("There can only be one default command.")
-            config.default_command = wrapper
-
-        parsers[name] = wrapper
+        commands[name] = wrapper
         return wrapper
 
     return decorator
@@ -146,7 +146,7 @@ def help():
     log(f"Usage: {config.prog_name} [command]\n")
     log("Available commands:\n")
 
-    for name, func in sorted(parsers.items(), key=lambda x: x[0]):
+    for name, func in sorted(commands.items(), key=lambda x: x[0]):
         if not func.hidden:
             log(f"  {name:<22} {normalize_doc(func.__doc__)}")
 
@@ -156,22 +156,25 @@ def main(prog_name="./do", default_container=None, splash=""):
     config.prog_name = prog_name
     config.default_container = default_container
     config.splash = splash
-    default = config.default_command.command_name if config.default_command else None
     args = sys.argv[1:]
     command = None
 
+    for name, func in commands.items():
+        func.parser.prog = f"{prog_name} {name}"
+
     try:
-        func = parsers[args[0]]
+        func = commands[args[0]]
         if func.passthrough:
             args = args[1:]
         command = func.command_name
     except (KeyError, IndexError):
-        command = default
+        help()
+        sys.exit(1)
 
-    if command and parsers[command].passthrough and len(sys.argv) > 1:
+    if command and commands[command].passthrough and len(sys.argv) > 1:
         options = argparse.Namespace()
         options.args = args
-        parsers[command](options)
+        commands[command](options)
         sys.exit(0)
 
     if not args or (len(args) == 1 and args[0] == "-h"):
@@ -180,16 +183,14 @@ def main(prog_name="./do", default_container=None, splash=""):
     options, extras = parser.parse_known_args(args)
 
     if extras:
-        help()
+        commands[command].parser.print_help()
         sys.exit(1)
 
     num_args = len(inspect.signature(options.func).parameters.keys())
 
     if num_args > 1:
         error("commands must be defined take 0 or 1 arguments")
-        info(
-            f"command `{options.func.command_name}` was defined to take {num_args} arguments"
-        )
+        info(f"command `{command}` was defined to take {num_args} arguments")
         sys.exit(1)
 
     if getattr(options, "func", None):
