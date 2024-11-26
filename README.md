@@ -84,13 +84,13 @@ Usage: ./do [command]
 
 Available commands:
 
-  bash                   Bash shell on the web container.
-  dbshell                Execute a database shell.
-  manage                 Run a django management command.
-  reset-container        Reset a container.
-  shell                  Open a django shell on the web container.
-  start                  Start all services.
-  stop                   Stop all services.
+  bash                   Bash shell on the web container
+  dbshell                Execute a database shell
+  manage                 Run a django management command
+  reset-container        Reset a container
+  shell                  Open a django shell on the web container
+  start                  Start all services
+  stop                   Stop all services
 ```
 
 ## Docker support

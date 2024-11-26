@@ -130,6 +130,13 @@ def fatal(msg, status=1):
     sys.exit(status)
 
 
+def normalize_doc(doc):
+    doc = (doc or "").split("\n")[0]
+    if doc.endswith("."):
+        doc = doc[:-1]
+    return doc
+
+
 @command(hidden=True)
 def help():
     if config.splash:
@@ -141,8 +148,7 @@ def help():
 
     for name, func in sorted(parsers.items(), key=lambda x: x[0]):
         if not func.hidden:
-            docs = (func.__doc__ or "").split("\n")[0]
-            log(f"  {name:<22} {docs}")
+            log(f"  {name:<22} {normalize_doc(func.__doc__)}")
 
 
 def main(prog_name="./do", default_container=None, splash=""):
