@@ -36,25 +36,25 @@ A typical setup looks something like this:
 
 
     @dm.command()
-    def start(args):
+    def start():
         """Start all services."""
         dm.run("docker-compose up -d")
 
 
     @dm.command()
-    def stop(args):
+    def stop():
         """Stop all services."""
         dm.run("docker-compose stop")
 
 
     @dm.command()
-    def dbshell(args):
+    def dbshell():
         """Execute a database shell."""
         dm.crun("psql -U myuser mydatabase", container="database")
 
 
     @dm.command()
-    def shell(args):
+    def shell():
         """Open a django shell on the web container."""
         dm.crun("django-admin shell", args)
 
@@ -76,11 +76,26 @@ A typical setup looks something like this:
 
 
     if __name__ == "__main__":
-        dm.set_default_container("web")
-        dm.main()
+        dm.main(default_container="web")
      ```
 
 With this setup, you can run commands like `./do help`, `./do shell`, etc.
+
+Running `./do -h` will show output like this:
+
+```
+Usage: ./do [command]
+
+Available commands:
+
+  bash                   Bash shell on the web container.
+  dbshell                Execute a database shell.
+  manage                 Run a django management command.
+  reset-container        Reset a container.
+  shell                  Open a django shell on the web container.
+  start                  Start all services.
+  stop                   Stop all services.
+```
 
 ## Concepts
 

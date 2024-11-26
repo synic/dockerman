@@ -1,5 +1,6 @@
 import argparse
 import functools
+import inspect
 import subprocess
 import sys
 
@@ -24,9 +25,10 @@ def command(*options, passthrough=False, default=False, hidden=False):
     def decorator(func):
         @functools.wraps(func)
         def wrapper(opts):
-            return func(opts=opts)
+            return func(opts)
 
         name = func.__name__.replace("_", "-")
+        func.command_name = name
         parser = subparsers.add_parser(name, help=func.__doc__)
         parser.set_defaults(func=func)
 
@@ -128,7 +130,7 @@ def fatal(msg, status=1):
 
 
 @command(hidden=True)
-def help(_):
+def help():
     if config.splash:
         log(config.splash, Color.debug)
         log()
@@ -164,16 +166,28 @@ def main(prog_name="./do", default_container=None, splash=""):
         parsers[command](options)
         sys.exit(0)
 
-    if not args:
-        help(None)
-        sys.exit(1)
+    if not args or (len(args) == 1 and args[0] == "-h"):
+        args = ["help"]
 
     options, extras = parser.parse_known_args(args)
 
     if extras:
-        help(None)
+        help()
+        sys.exit(1)
+
+    num_args = len(inspect.signature(options.func).parameters.keys())
+
+    if num_args > 1:
+        error("commands must be defined take 0 or 1 arguments")
+        info(
+            f"command `{options.func.command_name}` was defined to take {num_args} arguments"
+        )
         sys.exit(1)
 
     if getattr(options, "func", None):
         options.args = extras
-        options.func(options)
+
+        if num_args == 1:
+            options.func(options)
+        else:
+            options.func()
