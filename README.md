@@ -227,6 +227,6 @@ def hello(opts):
 
 ## Acknowledgements
 
-This project was named after the late great Doots. She will be missed.
+This project was named after our beloved Doots. She will be missed.
 
 ![Doots](docs/images/thebestdoots.jpg)
