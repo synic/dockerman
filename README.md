@@ -1,4 +1,10 @@
-# Doot: Simple Zero Dependency Task Runner
+         _             _
+      __| | ___   ___ | |_
+     / _` |/ _ \ / _ \| __|
+    | (_| | (_) | (_) | |_ _
+     \__,_|\___/ \___/ \__(_)
+
+# Simple Zero Dependency Task Runner
 
 This is a simple, zero dependency (except Python 3, which comes installed on
 most *nix operating systems) task runner. Similar to `make`, but meant to be
@@ -139,9 +145,9 @@ When using `doot`, the `doot.run` function runs a command locally. You can use
 the `doot.crun` function to run a command on a docker container, like so:
 
 ```python
-@do.task(passthrough=True)
+@doot.task(passthrough=True)
 def manage(opts):
-    do.crun("django-admin shell", container="api", opts.args)
+    doot.crun("django-admin shell", container="api", opts.args)
 ```
 
 You can set up a default container by passing `default_container` to `doot.main`,
@@ -194,20 +200,19 @@ it to run on the "web" container. If you do not pass `container`, it will use
 the container specified with `default_container` passed to the `doot.main`
 function.
 
-### `doot.opt`
+### `doot.arg`
 
-You can pass one or more `doot.opt` arguments to the `doot.task` decorator.
-These will set up argument options for your task, using the `argparse`
-module. They are passed directly to `parser.add_argument`, so they have the
-same parameters. See
-https://docs.python.org/3/library/argparse.html#the-add-argument-method for
+You can pass one or more `doot.arg` arguments to the `doot.task` decorator.
+These will set up arguments for your task, using the `argparse` module. They
+are passed directly to `parser.add_argument`, so they have the same parameters.
+See https://docs.python.org/3/library/argparse.html#the-add-argument-method for
 more information.
 
 An example:
 
 ```python
 
-@doot.task(doot.opt("--name", dest="name", help="Your name"))
+@doot.task(doot.arg("--name", dest="name", help="Your name"))
 def hello(opts):
     print(f"Hello, {opts.name}!")
 ```
@@ -223,7 +228,7 @@ type of message you want to show. For example:
 specify the exit code by passing `status`, the default is `1`).
 
 ```python
-@doot.task(doot.opt("--name", required=True))
+@doot.task(doot.arg("--name", required=True))
 def hello(opts):
     if opts.name.lower() in ("tyler", "steve", "james"):
         doot.fatal(f"Sorry, your name cannot be {opts.name}. Get a new one.")
