@@ -6,16 +6,44 @@ used for non-C style projects. Comes out of the box with simple docker support.
 
 ## Installation
 
-I prefer using the [Zero Install](#zero-install-option) option, as doing it
-this way means that your coworkers don't have to install anything extra to get
-their runner working (assuming they already have Python installed, which is
-usually true).
+There are 3 ways to install doot:
+
+### Zero Install (recommended)
+
+I prefer this method, as doing it this way means your coworkers don't have to
+install anything etra to get it working (assuing they have Python installed,
+which is usually done by default on Mac and most Linux distros).
+
+In the repository you want to use this in, run the following:
+
+```bash
+$ mkdir -p lib
+$ git submodule add https://github.com/synic/doot lib/doot
+```
+
+Then, at the top of your `do` script, before the doot import, you can add
+the following:
+
+```python
+if not os.path.isfile("./lib/doot/doot/__init__.py"):
+    print("`doot` not found; run `git submodule update --init`")
+    sys.exit(1)
+
+sys.path.append("./lib/doot")
+```
+
+### Install as a Library
 
 Alternatively, you can install it as a library:
 
 ```bash
 $ pip install git+https://github.com/synic/doot
 ```
+
+### Copy `doot.py` to Your Repo
+
+You can also just copy `doot.py` into your repository somewhere and include it
+from there.
 
 ## Getting Started
 
@@ -119,29 +147,6 @@ def manage(opts):
 You can set up a default container by passing `default_container` to `doot.main`,
 in which case, if you do not pass `container` to `doot.crun`, the default
 container will be used.
-
-## Zero Install Option
-
-On Mac and Linux, you can set this up to "just work" without any extra
-installation (assuming python is installed, which it usually is).
-
-In the repository you want to use this in, run the following:
-
-```bash
-$ mkdir -p lib
-$ git submodule add https://github.com/synic/doot lib/doot
-```
-
-Then, at the top of your `do` script, before the doot import, you can add
-the following:
-
-```python
-if not os.path.isfile("./lib/doot/doot/__init__.py"):
-    print("`doot` not found; run `git submodule update --init`")
-    sys.exit(1)
-
-sys.path.append("./lib/doot")
-```
 
 ## Doot Functions
 

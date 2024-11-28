@@ -1,39 +1,100 @@
 import argparse
+import enum
 import functools
 import inspect
 import subprocess
 import sys
 
-from .color import Color
-from .datatypes import Config, File, Option
-
-parser = argparse.ArgumentParser(prog="./manage", add_help=False)
+parser = argparse.ArgumentParser(prog="./do", add_help=False)
 subparsers = parser.add_subparsers()
 tasks = {}
+
+
+class Config:
+    def __init__(self, name="./do", default_container=None, splash=""):
+        self.name = name
+        self.default_container = default_container
+        self.splash = splash
+
+
 config = Config()
 
 
-def option(*args, **kwargs):
-    return Option(*args, **kwargs)
+class Option:
+    def __init__(self, *args, **kwargs):
+        self.args = args
+        self.kwargs = kwargs
 
 
-opt = option
+class File(object):
+    def __init__(self, fn):
+        if fn.lower().endswith(".sql"):
+            self.fmt = "sql"
+        elif fn.lower().endswith(".json"):
+            self.fmt = "json"
+        else:
+            raise ValueError("Invalid file import extension")
+        self.fn = fn
+
+    def __str__(self):
+        return self.fn
+
+
+class Task:
+    def __init__(self, name, func, parser, passthrough=False, hidden=False, doc=""):
+        self.func = func
+        self.doc = doc
+        self.name = name
+        self.parser = parser
+        self.passthrough = passthrough
+        self.hidden = hidden
+
+    @property
+    def short_doc(self):
+        doc = (self.doc or "").split("\n")[0]
+        if doc.endswith("."):
+            doc = doc[:-1]
+        return doc
+
+    def __call__(self, opts):
+        num_args = len(inspect.signature(self.func).parameters.keys())
+
+        if num_args > 1:
+            error("tasks must be defined take 0 or 1 arguments")
+            info(f"task `{self.name}` was defined to take {num_args} arguments")
+            sys.exit(1)
+
+        if num_args == 1:
+            self.func(opts)
+        else:
+            self.func()
+
+
+class Color(enum.Enum):
+    debug = "\033[96m"
+    info = "\033[92m"
+    warning = "\033[93m"
+    error = "\033[91m"
+    endc = "\033[0m"
+
+
+# option aliases
+opt = option = Option
 
 
 def file(fn):
     return File(fn) if fn else None
 
 
-def task(*options, passthrough=False, hidden=False):
+def task(*options, name=None, passthrough=False, hidden=False):
     def decorator(func):
         @functools.wraps(func)
         def wrapper(opts=None):
-            call_task_func(func, opts)
+            task(opts)
 
-        name = func.__name__.replace("_", "-")
-        func.task_name = name
+        task_name = name or func.__name__.replace("_", "-")
         parser = subparsers.add_parser(
-            name, help=func.__doc__, description=func.__doc__
+            task_name, help=func.__doc__, description=func.__doc__
         )
         parser.set_defaults(func=func)
 
@@ -42,17 +103,23 @@ def task(*options, passthrough=False, hidden=False):
         for option in opts:
             parser.add_argument(*option.args, **option.kwargs)
 
-        wrapper.parser = parser
-        wrapper.passthrough = passthrough
-        wrapper.task_name = name
-        wrapper.hidden = hidden
+        task = Task(
+            task_name,
+            func,
+            parser,
+            passthrough=passthrough,
+            hidden=hidden,
+            doc=func.__doc__,
+        )
 
-        tasks[name] = wrapper
+        tasks[task_name] = task
         return wrapper
 
     return decorator
 
 
+# task aliases - they are officially `tasks` now, but they used to be
+# commands, so alias here for backwards compatibility
 cmd = command = task
 
 
@@ -61,6 +128,7 @@ def run(cmd, args=None, echo=True, logstatus=False):
     command = f"{cmd} {args}"
     if echo:
         logcmd(command)
+        log("")
 
     code = subprocess.call(command, shell=True)
 
@@ -136,65 +204,43 @@ def fatal(msg, status=1):
     sys.exit(status)
 
 
-def normalize_doc(doc):
-    doc = (doc or "").split("\n")[0]
-    if doc.endswith("."):
-        doc = doc[:-1]
-    return doc
-
-
 @task(hidden=True)
 def help():
     if config.splash:
         log(config.splash, Color.debug)
         log()
 
-    log(f"Usage: {config.prog_name} [task]\n")
+    log(f"Usage: {config.name} [task]\n")
     log("Available tasks:\n")
 
-    for name, func in sorted(tasks.items(), key=lambda x: x[0]):
-        if not func.hidden:
-            log(f"  {name:<22} {normalize_doc(func.__doc__)}")
+    for name, task in sorted(tasks.items(), key=lambda t: t[0]):
+        if not task.hidden:
+            log(f"  {name:<22} {task.short_doc}")
 
 
-def call_task_func(func, opts):
-    num_args = len(inspect.signature(func).parameters.keys())
-
-    if num_args > 1:
-        error("tasks must be defined take 0 or 1 arguments")
-        info(f"task `{func.task_name}` was defined to take {num_args} arguments")
-        sys.exit(1)
-
-    if num_args == 1:
-        func(opts)
-    else:
-        func()
-
-
-def main(prog_name="./do", default_container=None, splash=""):
-    parser.prog = prog_name
-    config.prog_name = prog_name
+def main(name="./do", default_container=None, splash=""):
+    parser.prog = name
+    config.name = name
     config.default_container = default_container
     config.splash = splash
     args = sys.argv[1:]
     task = None
 
-    for name, func in tasks.items():
-        func.parser.prog = f"{prog_name} {name}"
+    for name, task in tasks.items():
+        task.parser.prog = f"{name} {name}"
 
     try:
-        func = tasks[args[0]]
-        if func.passthrough:
+        task = tasks[args[0]]
+        if task.passthrough:
             args = args[1:]
-        task = func.task_name
     except (KeyError, IndexError):
         help()
         sys.exit(1)
 
-    if task and tasks[task].passthrough and len(sys.argv) > 1:
+    if task and task.passthrough and len(sys.argv) > 1:
         options = argparse.Namespace()
         options.args = args
-        tasks[task](options)
+        task(options)
         sys.exit(0)
 
     if not args or (len(args) == 1 and args[0] == "-h"):
@@ -203,10 +249,10 @@ def main(prog_name="./do", default_container=None, splash=""):
     options, extras = parser.parse_known_args(args)
 
     if extras:
-        tasks[task].parser.print_help()
+        task.parser.print_help()
         sys.exit(1)
 
     if not options.func:
         fatal(f"function not defined for task `{task}`.")
 
-    call_task_func(options.func, options)
+    task(options)
