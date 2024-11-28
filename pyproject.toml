@@ -1,7 +1,7 @@
 [project]
 name = "doot"
 description = "Simple zero dependency task runner"
-version = "1.0.0"
+version = "2.0.0a1"
 requires-python = ">= 3.8"
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -9,6 +9,9 @@ keywords = ["task", "runner"]
 authors = [
   {name = "Adam Olsen", email = "arolsen@gmail.com"},
 ]
+
+[project.optional-dependencies]
+test = ["pyright"]
 
 [project.urls]
 Homepage = "https://github.com/synic/doot"

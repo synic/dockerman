@@ -95,8 +95,8 @@ def manage(opts):
 
 
 @do.task(
-    do.opt("-n", "--name", help="Container name", required=True),
-    do.opt("-d", "--detach", help="Detach when running `up`", action="store_true"),
+    do.arg("-n", "--name", help="Container name", required=True),
+    do.arg("-d", "--detach", help="Detach when running `up`", action="store_true"),
 )
 def reset_container(opts):
     """Reset a container."""

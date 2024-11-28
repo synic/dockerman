@@ -111,7 +111,7 @@ def manage(opts):
     do.crun("yarn manage", opts.args)
 
 
-@do.task(do.opt("-n", "--name", help="migration file base name"))
+@do.task(do.arg("-n", "--name", help="migration file base name"))
 def createmigration(opts):
     """Create a migration with a name."""
     do.crun(
@@ -121,7 +121,7 @@ def createmigration(opts):
     )
 
 
-@do.task(do.opt("-n", "--name", help="migration file base name"))
+@do.task(do.arg("-n", "--name", help="migration file base name"))
 def generatemigration(opts):
     """Generate a migration with a name."""
     do.crun(
@@ -158,8 +158,8 @@ def get_latest_image_data(environment="staging"):
 
 
 @do.task(
-    do.opt("-t", "--tag", default=None, help="Optional staging tag"),
-    do.opt("-d", "--diff", action="store_true", help="Show diff"),
+    do.arg("-t", "--tag", default=None, help="Optional staging tag"),
+    do.arg("-d", "--diff", action="store_true", help="Show diff"),
 )
 def release(opts):
     """Release the staging image to production."""
@@ -213,7 +213,7 @@ def get_active_branch_name():
             return line.partition("refs/heads/")[2]
 
 
-@do.task(do.opt("-p", "--push", action="store_true", help="Execute a git push first"))
+@do.task(do.arg("-p", "--push", action="store_true", help="Execute a git push first"))
 def pr(opts):
     """Opens a PR with the current branch.
 

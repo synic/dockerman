@@ -1,30 +1,34 @@
 #!/usr/bin/env python
 
+r"""Doot Task File.
+     _             _
+  __| | ___   ___ | |_
+ / _` |/ _ \ / _ \| __|
+| (_| | (_) | (_) | |_ _
+ \__,_|\___/ \___/ \__(_)
+"""
+
+import sys
+import unittest
+
 import doot as do
 
 
-@do.task(
-    do.option("-n", "--name", help="Your name", required=True),
-    name="hello",
-)
-def hello_task(opts):
-    print(f"Oh hello, {opts.name}!")
-
-
-@do.task(passthrough=True)
-def ls(opts):
-    do.run("ls", opts.args)
+@do.task()
+def test():
+    """Run unit tests."""
+    suite = unittest.TestLoader().discover("./t")
+    runner = unittest.TextTestRunner()
+    runner.run(suite)
 
 
 @do.task()
-def die():
-    do.fatal("Whoops, croaked.")
-
-
-@do.task(do.option("-s", "--shell", default="bash", help="Shell to run"))
-def shell(opts):
-    do.run(opts.shell)
+def lint():
+    """Lint."""
+    do.run("pyright")
 
 
 if __name__ == "__main__":
-    do.main()
+    module = sys.modules[__name__]
+    splash = "\n".join(module.__doc__.split("\n")[1:-1])
+    do.main(splash=splash)
