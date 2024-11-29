@@ -37,12 +37,29 @@ class TaskManager:
             )
             parser.set_defaults(func=func)
 
-            args = (
+            items = (
                 [arguments] if not isinstance(arguments, (list, tuple)) else arguments
             )
 
-            for arg in args:
-                parser.add_argument(*arg.args, **arg.kwargs)
+            for item in items:
+                if isinstance(item, (Group, MuxGroup)):
+                    if isinstance(item, Group):
+                        group = parser.add_argument_group(
+                            title=item.title,
+                            description=item.description,
+                            **item.kwargs,
+                        )
+                    else:
+                        group = parser.add_mutually_exclusive_group(
+                            required=item.required
+                        )
+
+                    for arg in item.args:
+                        if not isinstance(arg, Argument):
+                            raise ValueError(f"Value {arg} cannot be placed in a group")
+                        group.add_argument(*arg.args, **arg.kwargs)
+                else:
+                    parser.add_argument(*item.args, **item.kwargs)
 
             task = Task(
                 task_name, func, parser, passthrough=passthrough, doc=func.__doc__
@@ -53,10 +70,10 @@ class TaskManager:
 
         return decorator
 
-    def arg(self, *args, **kwargs):
-        return Argument(*args, **kwargs)
+    def run(self, args, extra=None, echo=True, **kwargs):
+        if isinstance(extra, list):
+            args = [args, *extra] if isinstance(args, str) else [*args, *extra]
 
-    def run(self, args, echo=True, **kwargs):
         display = args if isinstance(args, str) else subprocess.list2cmdline(args)
         if echo:
             log(f" -> {display}", "\033[96m")
@@ -64,12 +81,13 @@ class TaskManager:
 
         return subprocess.call(args, **kwargs)
 
-    def print_help(self):
-        if self.splash:
+    def print_help(self, show_splash=True, show_usage=True):
+        if self.splash and show_splash:
             info(self.splash)
             log()
 
-        log(f"Usage: {self.name} [task]\n")
+        if show_usage:
+            log(f"Usage: {self.name} [task]\n")
         log("Available tasks:\n")
 
         for name, task in sorted(self.tasks.items(), key=lambda t: t[0]):
@@ -81,22 +99,26 @@ class TaskManager:
         for name, task in self.tasks.items():
             task.parser.prog = f"{name} {name}"
 
+        if not args or (len(args) == 1 and args[0] in ("-h", "help")):
+            self.print_help()
+            return
+
         try:
             task = self.tasks[args[0]]
             if task.passthrough:
                 args = args[1:]
-        except (KeyError, IndexError):
+        except KeyError:
+            error(f"Invalid command: {args[0]}\n")
+            self.print_help(show_splash=False, show_usage=False)
+            sys.exit(1)
+        except IndexError:
             self.print_help()
             sys.exit(1)
 
-        if task.passthrough and len(sys.argv) > 1:
+        if task.passthrough:
             opts = argparse.Namespace()
             opts.args = args
             return task(opts)
-
-        if not args or (len(args) == 1 and args[0] == "-h"):
-            self.print_help()
-            return
 
         opts, extras = self.parser.parse_known_args(args)
 
@@ -122,6 +144,10 @@ class Argument:
     def __init__(self, *args, **kwargs):
         self.args = args
         self.kwargs = kwargs
+
+
+def arg(*args, **kwargs):
+    return Argument(*args, **kwargs)
 
 
 class Task:
@@ -155,6 +181,41 @@ class Task:
             return self.func()
 
 
+class Group:
+    """An argument group.
+
+    See https://docs.python.org/3/library/argparse.html#argument-groups for
+    more information.
+    """
+
+    def __init__(self, title, *args, description=None, **kwargs):
+        self.args = args
+        self.title = title
+        self.description = description
+        self.kwargs = kwargs
+
+
+def grp(title, *args, description=None, **kwargs):
+    return Group(title, *args, description=description, **kwargs)
+
+
+class MuxGroup:
+    """A mutual exclusion group.
+
+    See
+    https://docs.python.org/3/library/argparse.html#argparse.ArgumentParser.add_mutually_exclusive_group
+    for more information.
+    """
+
+    def __init__(self, *args, required=False):
+        self.args = args
+        self.required = required
+
+
+def muxgrp(*args, required=False):
+    return MuxGroup(*args, required=required)
+
+
 class InvalidArgumentCountException(Exception):
     def __init__(self, name, num_args):
         super().__init__(
@@ -185,10 +246,8 @@ def fatal(msg, status=1):
 
 
 _instance = TaskManager()
-default_exports = ["run", "task", "run", "arg"]
-
-for name in default_exports:
-    globals()[name] = getattr(_instance, name)
+run = _instance.run
+task = _instance.task
 
 
 def exec(name="./do", splash=""):
