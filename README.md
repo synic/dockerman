@@ -119,7 +119,7 @@ def reset_container(opts):
 
 
 if __name__ == "__main__":
-    do.main(default_container="web")
+    do.exec()
 ```
 
 With this setup, you can run tasks like `./do manage`, `./do shell`, etc.
@@ -159,8 +159,8 @@ passed to any `doot.run` statements executed within the function
 (this is the purpose of the task function receiving the `opts` parameter,
 and passing `opts.args` parameter to `doot.run`).
 
-For example, if you'd like to run Django management commands in the web
-container:
+For example, if you'd like to run Django management commands in a docker
+container by just running `./do manage [cmd]`:
 
 ```python
 @doot.task(passthrough=True)
