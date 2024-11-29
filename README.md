@@ -8,7 +8,12 @@
 
 This is a simple, zero dependency (except Python 3, which comes installed on
 most *nix operating systems) task runner. Similar to `make`, but meant to be
-used for non-C style projects. Comes out of the box with simple docker support.
+used for non-C style projects.
+
+Python is ideal for this sort of thing, because it has a pretty comprehensive
+standard library; where most things you might need are built right in. However,
+if you have more complex needs, any python library can be used as a part of
+your tasks.
 
 ## Installation
 
@@ -67,7 +72,7 @@ import doot as do
 @do.task(passthrough=True)
 def bash(opts):
     """Bash shell on the web container."""
-    do.crun("bash", opts.args)
+    do.run("docker exec -it api bash", opts.args)
 
 
 @do.task()
@@ -85,19 +90,19 @@ def stop():
 @do.task()
 def dbshell():
     """Execute a database shell."""
-    do.crun("psql -U myuser mydatabase", container="database")
+    do.run("docker exec -it database psql -U myuser mydatabase")
 
 
 @do.task()
 def shell():
     """Open a django shell on the web container."""
-    do.crun("django-admin shell")
+    do.run("docker exec -it api django-admin shell")
 
 
 @do.task(passthrough=True)
 def manage(opts):
     """Run a django management command."""
-    do.crun("django-admin", opts.args)
+    do.run("docker exec -it api django-admin", opts.args)
 
 
 @do.task(
@@ -139,21 +144,6 @@ Available tasks:
 
 To see a more complex example, look [here](docs/complex_dootfile_example.md)
 
-## Docker support
-
-When using `doot`, the `doot.run` function runs a command locally. You can use
-the `doot.crun` function to run a command on a docker container, like so:
-
-```python
-@doot.task(passthrough=True)
-def manage(opts):
-    doot.crun("django-admin shell", container="api", opts.args)
-```
-
-You can set up a default container by passing `default_container` to `doot.main`,
-in which case, if you do not pass `container` to `doot.crun`, the default
-container will be used.
-
 ## Doot Functions
 
 ### `doot.task`
@@ -164,10 +154,10 @@ docstring will be the documentation that appears when you type `./do help` or
 `./do help [task]`. All underscores will be converted to hyphens in the
 resulting task name.
 
-If you specify `passthrough=True`, all extra command line arguments will be
-passed to any `doot.crun` or `doot.run` statements executed within the function
+If you specify `passthrough=True`, all extra command line arguments can be
+passed to any `doot.run` statements executed within the function
 (this is the purpose of the task function receiving the `opts` parameter,
-and passing `opts.args` parameter to `doot.crun` and `doot.run`).
+and passing `opts.args` parameter to `doot.run`).
 
 For example, if you'd like to run Django management commands in the web
 container:
@@ -176,7 +166,7 @@ container:
 @doot.task(passthrough=True)
 def manage(opts):
     """Run Django management commands."""
-    doot.crun("django-admin", opts.args)
+    doot.run("docker exec -it api django-admin", opts.args)
 ```
 
 Then when you run something like:
@@ -191,14 +181,12 @@ through to `django-admin` on the container.
 ### `doot.run`
 
 This runs a command on the host. Things like
-`doot.run('docker network add test')` are typical.
+`doot.run('docker network add test')`, or `doot.run(["docker", "ps", "-q"])`
 
-### `doot.crun`
-
-This runs a command in a docker container. Passing `container="web"` will tell
-it to run on the "web" container. If you do not pass `container`, it will use
-the container specified with `default_container` passed to the `doot.main`
-function.
+The first argument of `doot.run`, `args`, and any extra **kwargs are passed
+directly to `subprocess.call`. If you have more complex needs, you can use the
+`subprocess` module directly; the `doot.run` function is just there for
+convenience.
 
 ### `doot.arg`
 

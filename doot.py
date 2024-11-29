@@ -3,6 +3,8 @@ import inspect
 import subprocess
 import sys
 
+logfunc = print
+
 
 class TaskManager:
     """Task registry and runner.
@@ -20,9 +22,8 @@ class TaskManager:
     And then they can be executed by calling `do.exec()`
     """
 
-    def __init__(self, name="./do", default_container=None, splash="", parser=None):
+    def __init__(self, name="./do", splash="", parser=None):
         self.name = name
-        self.default_container = default_container
         self.splash = splash
         self.parser = parser or argparse.ArgumentParser(prog=name, add_help=False)
         self.subparsers = self.parser.add_subparsers()
@@ -55,91 +56,24 @@ class TaskManager:
     def arg(self, *args, **kwargs):
         return Argument(*args, **kwargs)
 
-    def run(self, cmd, args=None, echo=True, logstatus=False):
-        args = (
-            " ".join([f'"{arg}"' if " " in arg else arg for arg in args])
-            if args
-            else ""
-        )
-        command = f"{cmd} {args}"
+    def run(self, args, echo=True, **kwargs):
+        display = args if isinstance(args, str) else subprocess.list2cmdline(args)
         if echo:
-            self.logcmd(command)
-            self.log("")
+            log(f" -> {display}", "\033[96m")
+            log("")
 
-        code = subprocess.call(command, shell=True)
+        return subprocess.call(args, **kwargs)
 
-        if logstatus:
-            self.log("")
-
-            if code != 0:
-                self.error(f"Command exited with a non-zero exit code: {code}")
-            else:
-                self.info("Command completed without any errors.")
-
-        return code
-
-    def crun(self, cmd, args=None, container=None, echo=True, logstatus=False):
-        running = False
-        if container is None:
-            container = self.default_container
-            if not container:
-                raise AttributeError(
-                    "Default container is not set, so you must pass a container name"
-                )
-
-        try:
-            output = (
-                subprocess.check_output(
-                    f"docker inspect --format {{{{.State.Running}}}} "
-                    f"{container}".split()
-                )
-                .decode("utf8")
-                .strip()
-            )
-            running = output == "true"
-        except subprocess.CalledProcessError:
-            pass
-
-        if not running:
-            self.error(
-                f'The "{container}" container does not appear '
-                'to be running. Try "docker-compose up -d".'
-            )
-            return
-
-        return self.run(
-            f"docker exec -it {container} {cmd}", args, echo=echo, logstatus=logstatus
-        )
-
-    def help(self):
+    def print_help(self):
         if self.splash:
-            self.info(self.splash)
-            self.log()
+            info(self.splash)
+            log()
 
-        self.log(f"Usage: {self.name} [task]\n")
-        self.log("Available tasks:\n")
+        log(f"Usage: {self.name} [task]\n")
+        log("Available tasks:\n")
 
         for name, task in sorted(self.tasks.items(), key=lambda t: t[0]):
-            self.log(f"  {name:<22} {task.short_doc}")
-
-    def log(self, msg="", color="\033[0m"):
-        print(f"{color}{msg}\033[0m")
-
-    def logcmd(self, msg):
-        self.log(f" -> {msg}", "\033[96m")
-
-    def info(self, msg):
-        self.log(msg, "\033[96m")
-
-    def warn(self, msg):
-        self.log(msg, "\033[93m")
-
-    def error(self, msg):
-        self.log(f"ERROR: {msg}", "\033[91m")
-
-    def fatal(self, msg, status=1):
-        self.error(msg)
-        sys.exit(status)
+            log(f"  {name:<22} {task.short_doc}")
 
     def exec(self, args=None):
         args = args or sys.argv[1:]
@@ -152,7 +86,7 @@ class TaskManager:
             if task.passthrough:
                 args = args[1:]
         except (KeyError, IndexError):
-            self.help()
+            self.print_help()
             sys.exit(1)
 
         if task.passthrough and len(sys.argv) > 1:
@@ -161,7 +95,7 @@ class TaskManager:
             return task(opts)
 
         if not args or (len(args) == 1 and args[0] == "-h"):
-            self.help()
+            self.print_help()
             return
 
         opts, extras = self.parser.parse_known_args(args)
@@ -171,7 +105,7 @@ class TaskManager:
             sys.exit(1)
 
         if not opts.func:
-            self.fatal(f"function not defined for task `{task}`.")
+            fatal(f"function not defined for task `{task}`.")
 
         return task(opts)
 
@@ -229,29 +163,36 @@ class InvalidArgumentCountException(Exception):
         )
 
 
+def log(msg="", color="\033[0m"):
+    logfunc(f"{color}{msg}\033[0m")
+
+
+def info(msg):
+    log(msg, "\033[96m")
+
+
+def warn(msg):
+    log(msg, "\033[93m")
+
+
+def error(msg):
+    log(f"ERROR: {msg}", "\033[91m")
+
+
+def fatal(msg, status=1):
+    error(msg)
+    sys.exit(status)
+
+
 _instance = TaskManager()
-
-
-default_exports = [
-    "run",
-    "crun",
-    "task",
-    "run",
-    "log",
-    "arg",
-    "info",
-    "warn",
-    "error",
-    "fatal",
-]
+default_exports = ["run", "task", "run", "arg"]
 
 for name in default_exports:
     globals()[name] = getattr(_instance, name)
 
 
-def main(name="./do", default_container=None, splash=""):
+def exec(name="./do", splash=""):
     _instance.parser.prog = name
     _instance.name = name
-    _instance.default_container = default_container
     _instance.splash = splash
     return _instance.exec()

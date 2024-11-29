@@ -32,18 +32,10 @@ os.environ["DOCKER_BUILDKIT"] = "1"
 os.environ["COMPOSE_DOCKER_CLI_BUILD"] = "1"
 
 
-class Containers:
-    api = "api"
-    db = "postgres"
-
-
-cont = Containers()
-
-
 @do.task(passthrough=True)
 def bash(opts):
     """Bash shell on the api container."""
-    do.crun("bash", opts.args)
+    do.run("docker exec -it api bash", opts.args)
 
 
 @do.task()
@@ -70,7 +62,7 @@ def stop():
 @do.task()
 def db():
     """Execute a database shell."""
-    do.crun("psql -U postgres postgres", container=cont.db)
+    do.run("docker exec -it database psql -U postgres postgres")
 
 
 @do.task()
@@ -84,37 +76,38 @@ def debug():
 @do.task(passthrough=True)
 def lint(opts):
     """Lint the code."""
-    do.crun("yarn lint", opts.args)
+    do.run("docker exec -it api yarn lint", opts.args)
 
 
 @do.task(passthrough=True)
 def typeorm(opts):
     """Run migration commands."""
-    do.crun("yarn typeorm:cli", opts.args)
+    do.run("docker exec -it api yarn typeorm:cli", opts.args)
 
 
 @do.task()
 def migrate(opts):
     """Run all migrations."""
-    do.crun("yarn typeorm:cli migration:run", opts.args)
+    do.run("docker exec -it yarn typeorm:cli migration:run", opts.args)
 
 
 @do.task(passthrough=True)
 def yarn(opts):
     """Run yarn commands."""
-    do.crun("yarn", opts.args)
+    do.run("docker exec -it yarn", opts.args)
 
 
 @do.task(passthrough=True)
 def manage(opts):
     """Run management commands."""
-    do.crun("yarn manage", opts.args)
+    do.run("docker exec -it yarn manage", opts.args)
 
 
 @do.task(do.arg("-n", "--name", help="migration file base name"))
 def createmigration(opts):
     """Create a migration with a name."""
-    do.crun(
+    do.run(
+        "docker exec -it api"
         f"yarn typeorm:plaincli migration:create "
         f"./src/databases/migrations/default/{opts.name}",
         opts.args,
@@ -124,7 +117,8 @@ def createmigration(opts):
 @do.task(do.arg("-n", "--name", help="migration file base name"))
 def generatemigration(opts):
     """Generate a migration with a name."""
-    do.crun(
+    do.run(
+        "docker exec -it api"
         f"yarn typeorm:cli migration:generate "
         f"./src/databases/migrations/default/{opts.name}",
         opts.args,
@@ -263,12 +257,12 @@ def pod():
 @do.task()
 def build_essential(opts):
     """Install build deps for native node packages."""
-    do.crun("apt update", opts.args)
-    do.crun("apt install build-essential", opts.args)
+    do.run("docker exec -it api apt update", opts.args)
+    do.run("docker exec -it apt install build-essential", opts.args)
 
 
 if __name__ == "__main__":
     module = sys.modules[__name__]
     splash = "\n".join(module.__doc__.split("\n")[1:-1])
-    do.main(default_container=cont.api, splash=splash)
+    do.exec(splash=splash)
 ```
