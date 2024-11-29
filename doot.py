@@ -12,9 +12,11 @@ class TaskManager:
     Tasks can be registered by using the `task` decorator, like so:
 
     ```python
-    do = TaskManager()
+    import doot
 
-    @do.task(do.arg("-n", "--name", default="world"))
+    do = doot.TaskManager()
+
+    @do.task(doot.arg("-n", "--name", default="world"))
     def hello(opts)
         print(f"Hello, {opts.name}!")
     ```
@@ -69,6 +71,15 @@ class TaskManager:
             return func
 
         return decorator
+
+    def grp(self, title, *args, description=None, **kwargs):
+        return Group(title, *args, description=description, **kwargs)
+
+    def muxgrp(self, *args, required=False):
+        return MuxGroup(*args, required=required)
+
+    def arg(self, *args, **kwargs):
+        return Argument(*args, **kwargs)
 
     def run(self, args, extra=None, echo=True, **kwargs):
         if isinstance(extra, list):
@@ -148,10 +159,6 @@ class Argument:
         self.kwargs = kwargs
 
 
-def arg(*args, **kwargs):
-    return Argument(*args, **kwargs)
-
-
 class Task:
     def __init__(self, name, func, parser, passthrough=False, doc=""):
         self.name = name
@@ -197,10 +204,6 @@ class Group:
         self.kwargs = kwargs
 
 
-def grp(title, *args, description=None, **kwargs):
-    return Group(title, *args, description=description, **kwargs)
-
-
 class MuxGroup:
     """A mutual exclusion group.
 
@@ -212,10 +215,6 @@ class MuxGroup:
     def __init__(self, *args, required=False):
         self.args = args
         self.required = required
-
-
-def muxgrp(*args, required=False):
-    return MuxGroup(*args, required=required)
 
 
 class InvalidArgumentCountException(Exception):
@@ -250,6 +249,9 @@ def fatal(msg, status=1):
 _instance = TaskManager()
 run = _instance.run
 task = _instance.task
+arg = _instance.arg
+grp = _instance.grp
+muxgrp = _instance.muxgrp
 
 
 def exec(name="./do", splash="", args=None):

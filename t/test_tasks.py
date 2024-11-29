@@ -39,7 +39,7 @@ class TestTasksManager(unittest.TestCase):
         self.assertEqual("yay", r)
 
     def test_pass_arguments(self):
-        @self.do.task(doot.arg("-n", "--name"), doot.arg("-d", action="store_true"))
+        @self.do.task(self.do.arg("-n", "--name"), doot.arg("-d", action="store_true"))
         def hello(opts):
             return dict(name=opts.name, d=opts.d)
 
