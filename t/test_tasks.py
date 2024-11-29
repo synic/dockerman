@@ -11,10 +11,26 @@ class TestTasksManager(unittest.TestCase):
         with self.assertRaises(doot.InvalidArgumentCountException):
 
             @self.do.task()
-            def hello_world(one, two, three):
+            def hello_world_one(one, two):
+                print("whoops", one, two)
+
+            _ = hello_world_one
+
+        with self.assertRaises(doot.InvalidArgumentCountException):
+
+            @self.do.task()
+            def hello_world_two(one, two, three):
                 print("whoops", one, two, three)
 
-            _ = hello_world
+            _ = hello_world_two
+
+        with self.assertRaises(doot.InvalidArgumentCountException):
+
+            @self.do.task()
+            def hello_world_three(one, **kwargs):
+                print("whoops", one, kwargs)
+
+            _ = hello_world_three
 
     def test_task_works_with_zero_arguments(self):
         @self.do.task()
