@@ -75,6 +75,7 @@ class TaskManager:
             args = [args, *extra] if isinstance(args, str) else [*args, *extra]
 
         display = args if isinstance(args, str) else subprocess.list2cmdline(args)
+
         if echo:
             log(f" -> {display}", "\033[96m")
             log("")
@@ -88,6 +89,7 @@ class TaskManager:
 
         if show_usage:
             log(f"Usage: {self.name} [task]\n")
+
         log("Available tasks:\n")
 
         for name, task in sorted(self.tasks.items(), key=lambda t: t[0]):
@@ -250,8 +252,8 @@ run = _instance.run
 task = _instance.task
 
 
-def exec(name="./do", splash=""):
+def exec(name="./do", splash="", args=None):
     _instance.parser.prog = name
     _instance.name = name
     _instance.splash = splash
-    return _instance.exec()
+    return _instance.exec(args=args)
