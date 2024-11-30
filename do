@@ -25,7 +25,7 @@ def test():
 @do.task()
 def lint():
     """Lint."""
-    do.run("pyright")
+    do.run("pyright doot.py")
 
 
 if __name__ == "__main__":
