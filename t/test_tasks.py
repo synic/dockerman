@@ -1,4 +1,5 @@
 import unittest
+from unittest import mock
 
 import doot
 
@@ -102,3 +103,98 @@ class TestTasksManager(unittest.TestCase):
 
         self.assertEqual(list(self.do.tasks.keys()), ["super:hello-world"])
         self.assertEqual(self.do.tasks["super:hello-world"].func, super__hello_world)
+
+    def test_group(self):
+        self.assertEqual(self.do.tasks, {})
+
+        @self.do.task(
+            self.do.arg("-n", default="Woot"),
+            self.do.grp(
+                "T-Shirt",
+                self.do.arg("--size"),
+                self.do.arg("--color"),
+            ),
+        )
+        def hello(opt):
+            return [opt.name, opt.size, opt.color]
+
+        _ = hello
+
+        parser = self.do.tasks["hello"].parser
+        groups = parser._action_groups
+
+        # the custom group will be the last one, afer "positional arguments"
+        # and "options"
+        self.assertEqual(len(groups), 3)
+        group = groups[-1]
+
+        self.assertEqual("T-Shirt", group.title)
+        actions = group._group_actions
+
+        self.assertEqual(len(actions), 2)
+
+        size = actions[-2]
+        color = actions[-1]
+
+        self.assertEqual(size.dest, "size")
+        self.assertEqual(color.dest, "color")
+
+    def test_mux_group(self):
+        self.assertEqual(self.do.tasks, {})
+
+        @self.do.task(
+            self.do.arg("-n", default="Woot"),
+            self.do.muxgrp(
+                self.do.arg("--size"),
+                self.do.arg("--color"),
+            ),
+        )
+        def hello(opt):
+            return [opt.name, opt.size, opt.color]
+
+        _ = hello
+
+        parser = self.do.tasks["hello"].parser
+        groups = parser._mutually_exclusive_groups
+
+        self.assertEqual(len(groups), 1)
+
+        actions = groups[0]._group_actions
+
+        self.assertEqual(len(actions), 2)
+
+        size = actions[-2]
+        color = actions[-1]
+
+        self.assertEqual(size.dest, "size")
+        self.assertEqual(color.dest, "color")
+
+    def test_args_str_extra_none(self):
+        with mock.patch("subprocess.call") as call:
+            self.do.run("ls -lh", echo=False)
+            call.assert_called_once_with(["ls", "-lh"])
+
+    def test_args_list_extra_none(self):
+        with mock.patch("subprocess.call") as call:
+            self.do.run(["ls", "-lh"], echo=False)
+            call.assert_called_once_with(["ls", "-lh"])
+
+    def test_args_str_extra_str(self):
+        with mock.patch("subprocess.call") as call:
+            self.do.run("ls -lh", "-a -w", echo=False)
+            call.assert_called_once_with(["ls", "-lh", "-a", "-w"])
+
+    def test_args_str_extra_list(self):
+        with mock.patch("subprocess.call") as call:
+            self.do.run("ls -lh", ["-a", "-w"], echo=False)
+            call.assert_called_once_with(["ls", "-lh", "-a", "-w"])
+
+    def test_args_list_extra_str(self):
+        with mock.patch("subprocess.call") as call:
+            self.do.run(["ls", "-lh"], "-a -w", echo=False)
+            call.assert_called_once_with(["ls", "-lh", "-a", "-w"])
+
+    def test_args_str_with_quote(self):
+        with mock.patch("subprocess.call") as call:
+            self.do.run('ls "-lh foo"', echo=False)
+            call.assert_called_once_with(["ls", "-lh foo"])

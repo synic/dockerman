@@ -86,8 +86,8 @@ class TaskManager:
         return Argument(*args, **kwargs)
 
     def run(self, args, extra=None, echo=True, **kwargs):
-        args = shlex.split(args) if isinstance(args, str) else args
-        extra = shlex.split(extra) if isinstance(extra, str) else extra
+        args = split_keep_quotes(args) if isinstance(args, str) else args
+        extra = split_keep_quotes(extra) if isinstance(extra, str) else extra
 
         if extra is not None:
             args = [*args, *extra]
@@ -258,6 +258,13 @@ class InvalidArgumentCountException(Exception):
             f"task `{name}` was defined to take {num_args} "
             "arguments, but must be defined to take 0 or 1 arguments"
         )
+
+
+def split_keep_quotes(s):
+    lexer = shlex.shlex(s, posix=True)
+    lexer.whitespace_split = True
+    lexer.quotes = '"'
+    return list(lexer)
 
 
 do = TaskManager()

@@ -14,10 +14,18 @@ import unittest
 from doot import do
 
 
-@do.task()
-def test():
+@do.task(passthrough=True)
+def test(opt):
     """Run unit tests."""
     suite = unittest.TestLoader().discover("./t")
+
+    if opt.args:
+        tests = []
+        for arg in opt.args:
+            test = unittest.TestLoader().loadTestsFromName(arg)
+            tests.append(test)
+        suite = unittest.TestSuite(tests)
+
     runner = unittest.TextTestRunner()
     runner.run(suite)
 
