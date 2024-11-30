@@ -49,7 +49,7 @@ def doot__update(opt):
         with open("${install_location}/doot.py", "w") as h:
             h.write(res.read().decode('utf8'))
 
-    do.info("Update complete!")
+    do.success("Update complete!")
     do.log(f" -> backup created at \`${install_location}/doot.py.bak\`")
     do.log(f" -> \`${install_location}/doot.py\` updated to \`{opt.ref}\` version")
     do.log("")

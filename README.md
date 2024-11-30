@@ -226,10 +226,10 @@ def hello(opt):
     doot.info(f"Hello, {opt.name}!\n")
 ```
 
-### `doot.log`, `doot.info`, `doot.warn`, `doot.error`
+### `doot.log`, `doot.success`, `doot.info`, `doot.warn`, `doot.error`
 
 These are logging statements. Each one has it's own color indicative of the
-type of message you want to show. For example:
+type of message you want to show.
 
 ### `doot.fatal`
 

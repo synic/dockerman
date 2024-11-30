@@ -26,7 +26,9 @@ class TaskManager:
     And then they can be executed by calling `do.exec()`
     """
 
-    exports = "run, task, arg, grp, muxgrp, log, warn, info, error, fatal, exec"
+    exports = (
+        "run, task, arg, grp, muxgrp, log, warn, info, error, success, fatal, exec"
+    )
 
     def __init__(self, parser=None):
         self.parser = parser or argparse.ArgumentParser(
@@ -122,6 +124,9 @@ class TaskManager:
 
     def warn(self, msg):
         self.log(msg, "\033[93m")
+
+    def success(self, msg):
+        self.log(msg, "\033[92m")
 
     def error(self, msg):
         self.log(f"ERROR: {msg}", "\033[91m")
