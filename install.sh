@@ -52,6 +52,7 @@ def doot__update(opt):
     do.info("Update complete!")
     do.log(f" -> backup created at \`${install_location}/doot.py.bak\`")
     do.log(f" -> \`${install_location}/doot.py\` updated to \`{opt.ref}\` version")
+    do.log("")
 
 
 if __name__ == "__main__":
