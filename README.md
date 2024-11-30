@@ -17,9 +17,37 @@ your tasks.
 
 ## Installation
 
-There are 3 ways to install doot:
+There are a few ways to install doot:
 
-### Zero Install (recommended)
+### Install To Repository (recommended)
+
+This installs doot directly to your repository, so that your colleagues don't
+have to do anything but use it. Run the following command in a terminal:
+
+```bash
+curl -o- https://raw.githubusercontent.com/synic/doot/main/install.sh | bash
+```
+
+This will start an installation script that will download `doot.py` to a
+location of your choice (default is `./.doot/doot.py`) and create an initial
+`./do` script for you.
+
+If you don't want to run the script, you can just download `doot.py` from the
+repository, put it in your repository, and then, in the top of your do file,
+before `import doot`, add the directory where `doot.py` resides to your python
+path:
+
+```python
+#!/usr/bin/env python3
+
+sys.path.append("./.doot")
+
+import doot as do  # noqa: E402
+
+# define tasks here...
+```
+
+### Submodule
 
 I prefer this method, as doing it this way means your coworkers don't have to
 install anything etra to get it working (assuing they have Python installed,
@@ -50,11 +78,6 @@ Alternatively, you can install it as a library:
 ```bash
 $ pip install git+https://github.com/synic/doot
 ```
-
-### Copy `doot.py` to Your Repo
-
-You can also just copy `doot.py` into your repository somewhere and include it
-from there.
 
 ## Getting Started
 

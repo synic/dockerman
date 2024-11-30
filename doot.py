@@ -25,18 +25,18 @@ class TaskManager:
     And then they can be executed by calling `do.exec()`
     """
 
-    exports = "run, task, arg, grp, muxgrp, log, warn, info, error, fatal"
+    exports = "run, task, arg, grp, muxgrp, log, warn, info, error, fatal, exec"
 
-    def __init__(self, name="./do", splash="", parser=None):
-        self.name = name
-        self.splash = splash
-        self.parser = parser or argparse.ArgumentParser(prog=name, add_help=False)
+    def __init__(self, parser=None):
+        self.parser = parser or argparse.ArgumentParser(
+            prog=sys.argv[0], add_help=False
+        )
         self.subparsers = self.parser.add_subparsers()
         self.tasks = {}
 
     def task(self, *arguments, name=None, passthrough=False):
         def decorator(func):
-            task_name = name or func.__name__.replace("_", "-")
+            task_name = name or func.__name__.replace("__", ":").replace("_", "-")
             parser = self.subparsers.add_parser(
                 task_name, help=func.__doc__, description=func.__doc__
             )
@@ -96,17 +96,18 @@ class TaskManager:
 
         return subprocess.call(args, **kwargs)
 
-    def print_help(self, show_splash=True, show_usage=True):
-        if self.splash and show_splash:
-            self.info(self.splash)
+    def print_help(self, name=None, splash=None, show_usage=True):
+        name = name or sys.argv[0]
+        if splash:
+            self.info(splash)
             self.log()
 
         if show_usage:
-            self.log(f"Usage: {self.name} [task]\n")
+            self.log(f"Usage: {name} [task]\n")
 
         self.log("Available tasks:\n")
 
-        for name, task in sorted(self.tasks.items(), key=lambda t: t[0]):
+        for name, task in self.tasks.items():
             self.log(f"  {name:<22} {task.short_doc}")
 
     def log(self, msg="", color="\033[0m"):
@@ -125,14 +126,16 @@ class TaskManager:
         self.error(msg)
         sys.exit(status)
 
-    def exec(self, args=None):
+    def exec(self, name=None, splash=None, args=None):
+        name = name or sys.argv[0]
+        splash = splash or ""
         args = args or sys.argv[1:]
 
-        for name, task in self.tasks.items():
-            task.parser.prog = f"{self.name} {name}"
+        for task_name, task in self.tasks.items():
+            task.parser.prog = f"{name} {task_name}"
 
         if not args or (len(args) == 1 and args[0] in ("-h", "help")):
-            self.print_help()
+            self.print_help(name=name, splash=splash)
             return
 
         try:
@@ -141,10 +144,10 @@ class TaskManager:
                 args = args[1:]
         except KeyError:
             self.error(f"Invalid command: {args[0]}\n")
-            self.print_help(show_splash=False, show_usage=False)
+            self.print_help(name=name, splash=None, show_usage=False)
             sys.exit(1)
         except IndexError:
-            self.print_help()
+            self.print_help(name=name, splash=splash)
             sys.exit(1)
 
         if task.passthrough:
@@ -247,19 +250,6 @@ class InvalidArgumentCountException(Exception):
         )
 
 
-_instance = TaskManager()
-
-
-def _setup_exports():
-    for field in re.split(r",\s+?", TaskManager.exports):
-        globals()[field] = getattr(_instance, field)
-
-
-_setup_exports()
-
-
-def exec(name="./do", splash="", args=None):
-    _instance.parser.prog = name
-    _instance.name = name
-    _instance.splash = splash
-    return _instance.exec(args=args)
+do = TaskManager()
+for field in re.split(r",\s+?", TaskManager.exports):
+    globals()[field] = getattr(do, field)

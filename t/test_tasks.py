@@ -90,3 +90,15 @@ class TestTasksManager(unittest.TestCase):
 
         self.assertEqual(list(self.do.tasks.keys()), ["hello-world"])
         self.assertEqual(self.do.tasks["hello-world"].func, hello_world)
+
+    def test_convert_double_underscore_to_colon(self):
+        self.assertEqual(self.do.tasks, {})
+
+        @self.do.task(passthrough=True)
+        def super__hello_world():
+            return ""
+
+        _ = super__hello_world
+
+        self.assertEqual(list(self.do.tasks.keys()), ["super:hello-world"])
+        self.assertEqual(self.do.tasks["super:hello-world"].func, super__hello_world)
