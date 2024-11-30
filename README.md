@@ -63,16 +63,16 @@ can be anything you want):
 
 ```python
 
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import os
 
 import doot as do
 
 @do.task(passthrough=True)
-def bash(opts):
+def bash(opt):
     """Bash shell on the web container."""
-    do.run("docker exec -it api bash", opts.args)
+    do.run("docker exec -it api bash", opt.args)
 
 
 @do.task()
@@ -100,21 +100,21 @@ def shell():
 
 
 @do.task(passthrough=True)
-def manage(opts):
+def manage(opt):
     """Run a django management command."""
-    do.run("docker exec -it api django-admin", opts.args)
+    do.run("docker exec -it api django-admin", opt.args)
 
 
 @do.task(
     do.arg("-n", "--name", help="Container name", required=True),
     do.arg("-d", "--detach", help="Detach when running `up`", action="store_true"),
 )
-def reset_container(opts):
+def reset_container(opt):
     """Reset a container."""
-    do.run(f"docker-compose stop {opts.name}")
-    do.run(f"docker-compose rm {opts.name}")
+    do.run(f"docker-compose stop {opt.name}")
+    do.run(f"docker-compose rm {opt.name}")
 
-    extra = "-d" if opts.detach else ""
+    extra = "-d" if opt.detach else ""
     do.run(f"docker-compose up {extra}")
 
 
@@ -156,17 +156,17 @@ resulting task name.
 
 If you specify `passthrough=True`, all extra command line arguments can be
 passed to any `doot.run` statements executed within the function
-(this is the purpose of the task function receiving the `opts` parameter,
-and passing `opts.args` parameter to `doot.run`).
+(this is the purpose of the task function receiving the `opt` parameter,
+and passing `opt.args` parameter to `doot.run`).
 
 For example, if you'd like to run Django management commands in a docker
 container by just running `./do manage [cmd]`:
 
 ```python
 @doot.task(passthrough=True)
-def manage(opts):
+def manage(opt):
     """Run Django management commands."""
-    doot.run("docker exec -it api django-admin", opts.args)
+    doot.run("docker exec -it api django-admin", opt.args)
 ```
 
 Then when you run something like:
@@ -201,8 +201,8 @@ An example:
 ```python
 
 @doot.task(doot.arg("--name", dest="name", help="Your name"))
-def hello(opts):
-    print(f"Hello, {opts.name}!")
+def hello(opt):
+    print(f"Hello, {opt.name}!")
 ```
 
 ### `doot.log`, `doot.info`, `doot.warn`, `doot.error`
@@ -217,10 +217,10 @@ specify the exit code by passing `status`, the default is `1`).
 
 ```python
 @doot.task(doot.arg("--name", required=True))
-def hello(opts):
-    if opts.name.lower() in ("tyler", "steve", "james"):
-        doot.fatal(f"Sorry, your name cannot be {opts.name}. Get a new one.")
-    print(f"Hello, {opts.name}!")
+def hello(opt):
+    if opt.name.lower() in ("tyler", "steve", "james"):
+        doot.fatal(f"Sorry, your name cannot be {opt.name}. Get a new one.")
+    print(f"Hello, {opt.name}!")
 ```
 
 ## Acknowledgements

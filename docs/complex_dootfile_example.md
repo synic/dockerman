@@ -19,7 +19,7 @@ import os
 import subprocess
 import sys
 
-if not os.path.isfile("./lib/doot/doot/__init__.py"):
+if not os.path.isfile("./lib/doot/doot.py"):
     print("`doot` not found; run `git submodule update --init`")
     sys.exit(1)
 
@@ -33,9 +33,9 @@ os.environ["COMPOSE_DOCKER_CLI_BUILD"] = "1"
 
 
 @do.task(passthrough=True)
-def bash(opts):
+def bash(opt):
     """Bash shell on the api container."""
-    do.run("docker exec -it api bash", opts.args)
+    do.run("docker exec -it api bash", opt.args)
 
 
 @do.task()
@@ -48,9 +48,9 @@ def start():
 
 
 @do.task(passthrough=True)
-def logs(opts):
+def logs(opt):
     """Show logs for main api container."""
-    do.run(f"docker logs -f -n 1000 {cont.api}", opts.args)
+    do.run(f"docker logs -f -n 1000 {cont.api}", opt.args)
 
 
 @do.task()
@@ -74,54 +74,54 @@ def debug():
 
 
 @do.task(passthrough=True)
-def lint(opts):
+def lint(opt):
     """Lint the code."""
-    do.run("docker exec -it api yarn lint", opts.args)
+    do.run("docker exec -it api yarn lint", opt.args)
 
 
 @do.task(passthrough=True)
-def typeorm(opts):
+def typeorm(opt):
     """Run migration commands."""
-    do.run("docker exec -it api yarn typeorm:cli", opts.args)
+    do.run("docker exec -it api yarn typeorm:cli", opt.args)
 
 
 @do.task()
-def migrate(opts):
+def migrate(opt):
     """Run all migrations."""
-    do.run("docker exec -it yarn typeorm:cli migration:run", opts.args)
+    do.run("docker exec -it yarn typeorm:cli migration:run", opt.args)
 
 
 @do.task(passthrough=True)
-def yarn(opts):
+def yarn(opt):
     """Run yarn commands."""
-    do.run("docker exec -it yarn", opts.args)
+    do.run("docker exec -it yarn", opt.args)
 
 
 @do.task(passthrough=True)
-def manage(opts):
+def manage(opt):
     """Run management commands."""
-    do.run("docker exec -it yarn manage", opts.args)
+    do.run("docker exec -it yarn manage", opt.args)
 
 
 @do.task(do.arg("-n", "--name", help="migration file base name"))
-def createmigration(opts):
+def createmigration(opt):
     """Create a migration with a name."""
     do.run(
         "docker exec -it api"
         f"yarn typeorm:plaincli migration:create "
-        f"./src/databases/migrations/default/{opts.name}",
-        opts.args,
+        f"./src/databases/migrations/default/{opt.name}",
+        opt.args,
     )
 
 
 @do.task(do.arg("-n", "--name", help="migration file base name"))
-def generatemigration(opts):
+def generatemigration(opt):
     """Generate a migration with a name."""
     do.run(
         "docker exec -it api"
         f"yarn typeorm:cli migration:generate "
-        f"./src/databases/migrations/default/{opts.name}",
-        opts.args,
+        f"./src/databases/migrations/default/{opt.name}",
+        opt.args,
     )
 
 
@@ -155,11 +155,11 @@ def get_latest_image_data(environment="staging"):
     do.arg("-t", "--tag", default=None, help="Optional staging tag"),
     do.arg("-d", "--diff", action="store_true", help="Show diff"),
 )
-def release(opts):
+def release(opt):
     """Release the staging image to production."""
 
     prod_info = get_latest_image_data("production")
-    tag = opts.tag
+    tag = opt.tag
 
     if tag:
         stage_info = (tag,) + tuple(tag.split("-"))
@@ -185,7 +185,7 @@ def release(opts):
     do.log("\n")
     do.run(f"git log --oneline {prod_info[2]}..{stage_info[2]}")
 
-    if opts.diff:
+    if opt.diff:
         do.run(f"git diff -u {prod_info[2]}..{stage_info[2]}")
 
     res = input("\nIf you're sure you want to release, type YES\nAnswer: ")
@@ -208,7 +208,7 @@ def get_active_branch_name():
 
 
 @do.task(do.arg("-p", "--push", action="store_true", help="Execute a git push first"))
-def pr(opts):
+def pr(opt):
     """Opens a PR with the current branch.
 
     Only works on Mac/Linux for the time being.
@@ -224,7 +224,7 @@ def pr(opts):
         do.error(f"Cannot create a PR for the branch {branch}.")
         sys.exit(1)
 
-    if opts.push:
+    if opt.push:
         os.system("git push")
 
     url = f"https://github.com/awesome/awesome/compare/{branch}?expand=1"
@@ -255,10 +255,10 @@ def pod():
 
 
 @do.task()
-def build_essential(opts):
+def build_essential(opt):
     """Install build deps for native node packages."""
-    do.run("docker exec -it api apt update", opts.args)
-    do.run("docker exec -it apt install build-essential", opts.args)
+    do.run("docker exec -it api apt update", opt.args)
+    do.run("docker exec -it apt install build-essential", opt.args)
 
 
 if __name__ == "__main__":
