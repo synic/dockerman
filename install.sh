@@ -28,7 +28,7 @@ import doot as do  # noqa: E402
 @do.task(do.arg("-n", "--name", default="World"))
 def hello(opt):
     """Say hi!"""
-    print(f"Hello, {opt.name}!")
+    do.info(f"Hello, {opt.name}!\n")
 
 
 @do.task(do.arg("-r", "--ref", help="Git ref to install [main]", default="main"))

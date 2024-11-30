@@ -223,7 +223,7 @@ An example:
 
 @doot.task(doot.arg("--name", dest="name", help="Your name"))
 def hello(opt):
-    print(f"Hello, {opt.name}!")
+    doot.info(f"Hello, {opt.name}!\n")
 ```
 
 ### `doot.log`, `doot.info`, `doot.warn`, `doot.error`
@@ -241,7 +241,7 @@ specify the exit code by passing `status`, the default is `1`).
 def hello(opt):
     if opt.name.lower() in ("tyler", "steve", "james"):
         doot.fatal(f"Sorry, your name cannot be {opt.name}. Get a new one.")
-    print(f"Hello, {opt.name}!")
+    doot.info(f"Hello, {opt.name}!\n")
 ```
 
 ## Acknowledgements
