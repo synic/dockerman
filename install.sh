@@ -27,11 +27,21 @@ import doot as do  # noqa: E402
 
 @do.task(do.arg("-n", "--name", default="World"))
 def hello(opt):
+    """Say hi!"""
     print(f"Hello, {opt.name}!")
 
 
-@do.task(do.arg("-r", "--ref", help="Git ref to install", default="main"))
+@do.task(do.arg("-r", "--ref", help="Git ref to install [main]", default="main"))
 def doot__update(opt):
+    """Update doot at \`${install_location}/doot.py\` to a different version."""
+    res = input("\nIf you're sure you want to update, type YES\nAnswer: ")
+
+    do.log("")
+
+    if res.strip().lower() != "yes":
+        do.log("Update cancelled. Bye!")
+        sys.exit()
+
     url = f"https://raw.githubusercontent.com/synic/doot/{opt.ref}/doot.py"
     shutil.move("${install_location}/doot.py", "${install_location}/doot.py.bak")
 

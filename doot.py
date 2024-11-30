@@ -126,7 +126,7 @@ class TaskManager:
         self.error(msg)
         sys.exit(status)
 
-    def exec(self, name=None, splash=None, args=None):
+    def exec(self, args=None, name=None, splash=None):
         name = name or sys.argv[0]
         splash = splash or ""
         args = args or sys.argv[1:]
@@ -134,14 +134,20 @@ class TaskManager:
         for task_name, task in self.tasks.items():
             task.parser.prog = f"{name} {task_name}"
 
-        if not args or (len(args) == 1 and args[0] in ("-h", "help")):
+        if not args or (len(args) >= 1 and args[0] in ("-h", "help")):
+            if len(args) > 1:
+                try:
+                    task = self.tasks[args[1]]
+                    task.parser.print_help()
+                    return
+                except KeyError:
+                    pass
+
             self.print_help(name=name, splash=splash)
             return
 
         try:
             task = self.tasks[args[0]]
-            if task.passthrough:
-                args = args[1:]
         except KeyError:
             self.error(f"Invalid command: {args[0]}\n")
             self.print_help(name=name, splash=None, show_usage=False)
@@ -152,7 +158,7 @@ class TaskManager:
 
         if task.passthrough:
             opts = argparse.Namespace()
-            opts.args = args
+            opts.args = args[1:]
             return task(opts)
 
         opts, extras = self.parser.parse_known_args(args)
