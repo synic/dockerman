@@ -167,7 +167,7 @@ To see a more complex example, look [here](docs/complex_example.py)
 
 ## Doot Functions
 
-### `doot.task`
+### `do.task`
 
 This is a decorator that turns a function into a task. The task will have
 the same name as the function it decorates (changing `_` to `-`), and the
@@ -176,18 +176,18 @@ docstring will be the documentation that appears when you type `./do help` or
 resulting task name.
 
 If you specify `passthrough=True`, all extra command line arguments can be
-passed to any `doot.run` statements executed within the function
+passed to any `do.run` statements executed within the function
 (this is the purpose of the task function receiving the `opt` parameter,
-and passing `opt.args` parameter to `doot.run`).
+and passing `opt.args` parameter to `do.run`).
 
 For example, if you'd like to run Django management commands in a docker
 container by just running `./do manage [cmd]`:
 
 ```python
-@doot.task(passthrough=True)
+@do.task(passthrough=True)
 def manage(opt):
     """Run Django management commands."""
-    doot.run("docker exec -it api django-admin", opt.args)
+    do.run("docker exec -it api django-admin", opt.args)
 ```
 
 Then when you run something like:
@@ -199,19 +199,19 @@ $ ./do manage makemigrations --name add_user_is_active_field accounts
 The `makemigrations --name add_user_is_active_field accounts` will be passed
 through to `django-admin` on the container.
 
-### `doot.run`
+### `do.run`
 
 This runs a command on the host. Things like
-`doot.run('docker network add test')`, or `doot.run(["docker", "ps", "-q"])`
+`do.run('docker network add test')`, or `doot.run(["docker", "ps", "-q"])`
 
-The first argument of `doot.run`, `args`, and any extra **kwargs are passed
+The first argument of `do.run`, `args`, and any extra **kwargs are passed
 directly to `subprocess.call`. If you have more complex needs, you can use the
-`subprocess` module directly; the `doot.run` function is just there for
+`subprocess` module directly; the `do.run` function is just there for
 convenience.
 
-### `doot.arg`
+### `do.arg`
 
-You can pass one or more `doot.arg` arguments to the `doot.task` decorator.
+You can pass one or more `do.arg` arguments to the `do.task` decorator.
 These will set up arguments for your task, using the `argparse` module. They
 are passed directly to `parser.add_argument`, so they have the same parameters.
 See https://docs.python.org/3/library/argparse.html#the-add-argument-method for
@@ -221,27 +221,27 @@ An example:
 
 ```python
 
-@doot.task(doot.arg("--name", dest="name", help="Your name"))
+@do.task(do.arg("--name", dest="name", help="Your name"))
 def hello(opt):
-    doot.info(f"Hello, {opt.name}!\n")
+    do.info(f"Hello, {opt.name}!\n")
 ```
 
-### `doot.log`, `doot.success`, `doot.info`, `doot.warn`, `doot.error`
+### `do.log`, `do.success`, `do.info`, `do.warn`, `do.error`
 
 These are logging statements. Each one has it's own color indicative of the
 type of message you want to show.
 
-### `doot.fatal`
+### `do.fatal`
 
-`doot.fatal(msg)` will call `doot.error(msg)` and then `sys.exit(1)` (you can
+`do.fatal(msg)` will call `do.error(msg)` and then `sys.exit(1)` (you can
 specify the exit code by passing `status`, the default is `1`).
 
 ```python
-@doot.task(doot.arg("--name", required=True))
+@do.task(doot.arg("--name", required=True))
 def hello(opt):
     if opt.name.lower() in ("tyler", "steve", "james"):
-        doot.fatal(f"Sorry, your name cannot be {opt.name}. Get a new one.")
-    doot.info(f"Hello, {opt.name}!\n")
+        do.fatal(f"Sorry, your name cannot be {opt.name}. Get a new one.")
+    do.info(f"Hello, {opt.name}!\n")
 ```
 
 ## Acknowledgements
