@@ -1,5 +1,6 @@
 import argparse
 import inspect
+import re
 import subprocess
 import sys
 
@@ -23,6 +24,8 @@ class TaskManager:
 
     And then they can be executed by calling `do.exec()`
     """
+
+    exports = "run, task, arg, grp, muxgrp, log, warn, info, error, fatal"
 
     def __init__(self, name="./do", splash="", parser=None):
         self.name = name
@@ -88,29 +91,45 @@ class TaskManager:
         display = args if isinstance(args, str) else subprocess.list2cmdline(args)
 
         if echo:
-            log(f" -> {display}", "\033[96m")
-            log("")
+            self.log(f" -> {display}", "\033[96m")
+            self.log("")
 
         return subprocess.call(args, **kwargs)
 
     def print_help(self, show_splash=True, show_usage=True):
         if self.splash and show_splash:
-            info(self.splash)
-            log()
+            self.info(self.splash)
+            self.log()
 
         if show_usage:
-            log(f"Usage: {self.name} [task]\n")
+            self.log(f"Usage: {self.name} [task]\n")
 
-        log("Available tasks:\n")
+        self.log("Available tasks:\n")
 
         for name, task in sorted(self.tasks.items(), key=lambda t: t[0]):
-            log(f"  {name:<22} {task.short_doc}")
+            self.log(f"  {name:<22} {task.short_doc}")
+
+    def log(self, msg="", color="\033[0m"):
+        logfunc(f"{color}{msg}\033[0m")
+
+    def info(self, msg):
+        self.log(msg, "\033[96m")
+
+    def warn(self, msg):
+        self.log(msg, "\033[93m")
+
+    def error(self, msg):
+        self.log(f"ERROR: {msg}", "\033[91m")
+
+    def fatal(self, msg, status=1):
+        self.error(msg)
+        sys.exit(status)
 
     def exec(self, args=None):
         args = args or sys.argv[1:]
 
         for name, task in self.tasks.items():
-            task.parser.prog = f"{name} {name}"
+            task.parser.prog = f"{self.name} {name}"
 
         if not args or (len(args) == 1 and args[0] in ("-h", "help")):
             self.print_help()
@@ -121,7 +140,7 @@ class TaskManager:
             if task.passthrough:
                 args = args[1:]
         except KeyError:
-            error(f"Invalid command: {args[0]}\n")
+            self.error(f"Invalid command: {args[0]}\n")
             self.print_help(show_splash=False, show_usage=False)
             sys.exit(1)
         except IndexError:
@@ -140,7 +159,7 @@ class TaskManager:
             sys.exit(1)
 
         if not opts.func:
-            fatal(f"function not defined for task `{task}`.")
+            self.fatal(f"function not defined for task `{task}`.")
 
         return task(opts)
 
@@ -182,6 +201,9 @@ class Task:
         if doc.endswith("."):
             doc = doc[:-1]
         return doc
+
+    def __str__(self):
+        return self.name
 
     def __call__(self, opts):
         if self.num_args == 1:
@@ -225,33 +247,15 @@ class InvalidArgumentCountException(Exception):
         )
 
 
-def log(msg="", color="\033[0m"):
-    logfunc(f"{color}{msg}\033[0m")
-
-
-def info(msg):
-    log(msg, "\033[96m")
-
-
-def warn(msg):
-    log(msg, "\033[93m")
-
-
-def error(msg):
-    log(f"ERROR: {msg}", "\033[91m")
-
-
-def fatal(msg, status=1):
-    error(msg)
-    sys.exit(status)
-
-
 _instance = TaskManager()
-run = _instance.run
-task = _instance.task
-arg = _instance.arg
-grp = _instance.grp
-muxgrp = _instance.muxgrp
+
+
+def _setup_exports():
+    for field in re.split(r",\s+?", TaskManager.exports):
+        globals()[field] = getattr(_instance, field)
+
+
+_setup_exports()
 
 
 def exec(name="./do", splash="", args=None):
