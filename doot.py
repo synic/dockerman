@@ -1,6 +1,7 @@
 import argparse
 import inspect
 import re
+import shlex
 import subprocess
 import sys
 
@@ -85,13 +86,14 @@ class TaskManager:
         return Argument(*args, **kwargs)
 
     def run(self, args, extra=None, echo=True, **kwargs):
-        if isinstance(extra, list):
-            args = [args, *extra] if isinstance(args, str) else [*args, *extra]
+        args = shlex.split(args) if isinstance(args, str) else args
+        extra = shlex.split(extra) if isinstance(extra, str) else extra
 
-        display = args if isinstance(args, str) else subprocess.list2cmdline(args)
+        if extra is not None:
+            args = [*args, *extra]
 
         if echo:
-            self.log(f" -> {display}", "\033[96m")
+            self.log(f" -> {subprocess.list2cmdline(args)}", "\033[96m")
             self.log("")
 
         return subprocess.call(args, **kwargs)
