@@ -50,6 +50,8 @@ def doot__update(opt):
             h.write(res.read().decode('utf8'))
 
     do.info("Update complete!")
+    do.log(f" -> backup created at \`${install_location}/doot.py.bak\`")
+    do.log(f" -> \`${install_location}/doot.py\` updated to \`{opt.ref}\` version")
 
 
 if __name__ == "__main__":
