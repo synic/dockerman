@@ -22,7 +22,7 @@ import urllib.request
 
 sys.path.append("${install_location}")
 
-import doot as do  # noqa: E402
+from doot import do  # pyright: ignore
 
 
 @do.task(do.arg("-n", "--name", default="World"))
@@ -56,7 +56,7 @@ def doot__update(opt):
 
 
 if __name__ == "__main__":
-  do.exec(name="${dofile}", splash=sys.modules[__name__].__doc__.split("\n")[0])
+    do.exec()
 
 EOF
     chmod +x "${dofile}"

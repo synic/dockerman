@@ -1,9 +1,14 @@
 import argparse
 import inspect
-import re
 import shlex
 import subprocess
 import sys
+
+
+def get_splash_from_calling_module():
+    frm = inspect.stack()[2]
+    mod = inspect.getmodule(frm[0])
+    return (mod.__doc__ or "").split("\n")[0]
 
 
 class TaskManager:
@@ -23,10 +28,6 @@ class TaskManager:
 
     And then they can be executed by calling `do.exec()`
     """
-
-    exports = (
-        "run, task, arg, grp, muxgrp, log, warn, info, error, success, fatal, exec"
-    )
 
     def __init__(self, parser=None, logfunc=print):
         self.logfunc = logfunc
@@ -87,8 +88,8 @@ class TaskManager:
         return Argument(*args, **kwargs)
 
     def run(self, args, extra=None, echo=True, **kwargs):
-        args = split_keep_quotes(args) if isinstance(args, str) else args
-        extra = split_keep_quotes(extra) if isinstance(extra, str) else extra
+        args = shlex.split(args, posix=False) if isinstance(args, str) else args
+        extra = shlex.split(extra, posix=False) if isinstance(extra, str) else extra
 
         if extra is not None:
             args = [*args, *extra]
@@ -134,9 +135,9 @@ class TaskManager:
         self.error(msg)
         sys.exit(status)
 
-    def exec(self, args=None, name=None, splash=None):
+    def exec(self, args=None, name=None, splash=get_splash_from_calling_module):
         name = name or sys.argv[0]
-        splash = splash or ""
+        splash = (splash() if callable(splash) else splash) or ""
         args = args or sys.argv[1:]
 
         for task_name, task in self.tasks.items():
@@ -264,13 +265,5 @@ class InvalidArgumentCountException(Exception):
         )
 
 
-def split_keep_quotes(s):
-    lexer = shlex.shlex(s, posix=True)
-    lexer.whitespace_split = True
-    lexer.quotes = '"'
-    return list(lexer)
-
-
+# export a default instance as `do`
 do = TaskManager()
-for field in re.split(r",\s+?", TaskManager.exports):
-    globals()[field] = getattr(do, field)

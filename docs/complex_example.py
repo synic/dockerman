@@ -1,17 +1,12 @@
-# Complex Doot Script Example
-
-Here's a more complex setup for a node app running in docker:
-
-```python
 #!/usr/bin/env python3
 
-"""Awesome project example.
+r"""Awesome project example.
                      _
 __      _____   ___ | |_
 \ \ /\ / / _ \ / _ \| __|
  \ V  V / (_) | (_) | |_
   \_/\_/ \___/ \___/ \__|
-"""  # noqa
+"""
 
 import json
 import pathlib
@@ -25,7 +20,7 @@ if not os.path.isfile("./lib/doot/doot.py"):
 
 sys.path.append("./lib/doot")
 
-import doot as do  # noqa: E402
+from doot import do  # pyright: ignore
 
 # enable buildkit
 os.environ["DOCKER_BUILDKIT"] = "1"
@@ -50,7 +45,7 @@ def start():
 @do.task(passthrough=True)
 def logs(opt):
     """Show logs for main api container."""
-    do.run(f"docker logs -f -n 1000 {cont.api}", opt.args)
+    do.run("docker logs -f -n 1000 api", opt.args)
 
 
 @do.task()
@@ -68,9 +63,9 @@ def db():
 @do.task()
 def debug():
     """Attach to api container for debugging."""
-    do.warning(f"Attaching to `{cont.api}`. Type CTRL-p CTRL-q to exit.")
-    do.warning("CTRL-c will restart the container.")
-    do.run(f"docker attach {cont.api}")
+    do.warn("Attaching to `api`. Type CTRL-p CTRL-q to exit.")
+    do.warn("CTRL-c will restart the container.")
+    do.run("docker attach api")
 
 
 @do.task(passthrough=True)
@@ -263,6 +258,5 @@ def build_essential(opt):
 
 if __name__ == "__main__":
     module = sys.modules[__name__]
-    splash = "\n".join(module.__doc__.split("\n")[1:-1])
+    splash = "\n".join((module.__doc__ or "").split("\n")[1:-1])
     do.exec(splash=splash)
-```

@@ -34,15 +34,15 @@ location of your choice (default is `./.doot/doot.py`) and create an initial
 
 If you don't want to run the script, you can just download `doot.py` from the
 repository, put it in your repository, and then, in the top of your do file,
-before `import doot`, add the directory where `doot.py` resides to your python
-path:
+before `from doot import do`, add the directory where `doot.py` resides to your
+python path:
 
 ```python
 #!/usr/bin/env python3
 
 sys.path.append("./.doot")
 
-import doot as do  # noqa: E402
+from doot import do  # pyright: ignore
 
 # define tasks here...
 ```
@@ -88,7 +88,7 @@ can be anything you want):
 
 #!/usr/bin/env python3
 
-import doot as do
+from doot import do
 
 @do.task(passthrough=True)
 def bash(opt):
@@ -163,7 +163,7 @@ Available tasks:
 
 ### Complex Example
 
-To see a more complex example, look [here](docs/complex_dootfile_example.md)
+To see a more complex example, look [here](docs/complex_example.py)
 
 ## Doot Functions
 

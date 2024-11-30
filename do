@@ -30,10 +30,10 @@ def test(opt):
     runner.run(suite)
 
 
-@do.task()
-def lint():
+@do.task(passthrough=True)
+def lint(opt):
     """Lint."""
-    do.run("pyright doot.py")
+    do.run("pyright", opt.args)
 
 
 if __name__ == "__main__":
