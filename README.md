@@ -25,7 +25,7 @@ This installs doot directly to your repository, so that your colleagues don't
 have to do anything but use it. Run the following command in a terminal:
 
 ```bash
-curl -o- https://raw.githubusercontent.com/synic/doot/main/install.sh | bash
+bash <(curl -s https://raw.githubusercontent.com/synic/doot/main/install.sh)
 ```
 
 This will start an installation script that will download `doot.py` to a

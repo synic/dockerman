@@ -110,6 +110,8 @@ class TaskManager:
         for name, task in self.tasks.items():
             self.log(f"  {name:<22} {task.short_doc}")
 
+        self.log("")
+
     def log(self, msg="", color="\033[0m"):
         logfunc(f"{color}{msg}\033[0m")
 

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 r"""Doot Task File.
      _             _
@@ -11,7 +11,7 @@ r"""Doot Task File.
 import sys
 import unittest
 
-import doot as do
+from doot import do
 
 
 @do.task()
