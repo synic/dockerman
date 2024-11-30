@@ -1,49 +1,42 @@
 #!/usr/bin/env python3
 
-"""Awesome Project.
-
-Run `./do -h` for a list of available tasks.
+r"""Doot Task File.
+     _             _
+  __| | ___   ___ | |_
+ / _` |/ _ \ / _ \| __|
+| (_| | (_) | (_) | |_ _
+ \__,_|\___/ \___/ \__(_)
 """
 
-import shutil
 import sys
-import urllib.request
+import unittest
 
-sys.path.append(".doot")
-
-import doot as do  # noqa: E402
+from doot import do
 
 
-@do.task(do.arg("-n", "--name", default="World"))
-def hello(opt):
-    """Say hi!"""
-    do.info(f"Hello, {opt.name}!\n")
+@do.task(passthrough=True)
+def test(opt):
+    """Run unit tests."""
+    suite = unittest.TestLoader().discover("./t")
+
+    if opt.args:
+        tests = []
+        for arg in opt.args:
+            test = unittest.TestLoader().loadTestsFromName(arg)
+            tests.append(test)
+        suite = unittest.TestSuite(tests)
+
+    runner = unittest.TextTestRunner()
+    runner.run(suite)
 
 
-@do.task(do.arg("-r", "--ref", help="Git ref to install [main]", default="main"))
-def doot__update(opt):
-    """Update doot at `.doot/doot.py` to a different version."""
-    res = input("\nIf you're sure you want to update, type YES\nAnswer: ")
-
-    do.log("")
-
-    if res.strip().lower() != "yes":
-        do.log("Update cancelled. Bye!")
-        sys.exit()
-
-    url = f"https://raw.githubusercontent.com/synic/doot/{opt.ref}/doot.py"
-    shutil.move(".doot/doot.py", ".doot/doot.py.bak")
-
-    with urllib.request.urlopen(url) as res:
-        with open(".doot/doot.py", "w") as h:
-            h.write(res.read().decode('utf8'))
-
-    do.success("Update complete!")
-    do.log(f" -> backup created at `.doot/doot.py.bak`")
-    do.log(f" -> `.doot/doot.py` updated to `{opt.ref}` version")
-    do.log("")
+@do.task()
+def lint():
+    """Lint."""
+    do.run("pyright doot.py")
 
 
 if __name__ == "__main__":
-  do.exec(name="./do", splash=sys.modules[__name__].__doc__.split("\n")[0])
-
+    module = sys.modules[__name__]
+    splash = "\n".join(module.__doc__.split("\n")[1:-1])
+    do.exec(splash=splash)

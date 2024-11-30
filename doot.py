@@ -5,8 +5,6 @@ import shlex
 import subprocess
 import sys
 
-logfunc = print
-
 
 class TaskManager:
     """Task registry and runner.
@@ -30,7 +28,8 @@ class TaskManager:
         "run, task, arg, grp, muxgrp, log, warn, info, error, success, fatal, exec"
     )
 
-    def __init__(self, parser=None):
+    def __init__(self, parser=None, logfunc=print):
+        self.logfunc = logfunc
         self.parser = parser or argparse.ArgumentParser(
             prog=sys.argv[0], add_help=False
         )
@@ -117,7 +116,7 @@ class TaskManager:
         self.log("")
 
     def log(self, msg="", color="\033[0m"):
-        logfunc(f"{color}{msg}\033[0m")
+        self.logfunc(f"{color}{msg}\033[0m")
 
     def info(self, msg):
         self.log(msg, "\033[96m")
