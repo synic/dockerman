@@ -3,12 +3,189 @@ import inspect
 import shlex
 import subprocess
 import sys
+from typing import Any, Callable, TypeIs, override
 
 
 def get_splash_from_calling_module():
     frm = inspect.stack()[2]
     mod = inspect.getmodule(frm[0])
     return (mod.__doc__ or "").split("\n")[0]
+
+
+TaskFuncZeroArg = Callable[[], Any]
+TaskFuncOneArg = Callable[[argparse.Namespace], Any]
+TaskFuncTwoArg = Callable[[argparse.Namespace, list[str]], Any]
+TaskFunc = TaskFuncZeroArg | TaskFuncOneArg | TaskFuncTwoArg
+
+
+def is_zero_arg(func: TaskFunc) -> TypeIs[TaskFuncZeroArg]:
+    return len(inspect.signature(func).parameters.keys()) == 0
+
+
+def is_one_arg(func: TaskFunc) -> TypeIs[TaskFuncOneArg]:
+    return len(inspect.signature(func).parameters.keys()) == 1
+
+
+def is_two_arg(func: TaskFunc) -> TypeIs[TaskFuncTwoArg]:
+    return len(inspect.signature(func).parameters.keys()) == 2
+
+
+class Argument:
+    """Argument for a task.
+
+    Multiple arguments can be passed to each task. The argument constructor
+    takes the same arguments as `argparse.ArgumentParser.add_argument`, see
+    https://docs.python.org/3/library/argparse.html#argparse.ArgumentParser.add_argument
+    for more information.
+    """
+
+    flags: tuple[str, ...]
+    action: str | None
+    nargs: int | None
+    default: Any | None
+    choices: None | list[str] | tuple[str]
+    required: bool
+    help: str | None
+    metavar: str | None
+    dest: str | None
+    deprecated: bool
+
+    def __init__(
+        self,
+        *flags: str,
+        action: str | None = None,
+        nargs: int | None = None,
+        default: Any | None = None,
+        choices: list[str] | tuple[str] | None = None,
+        required: bool = False,
+        help: str | None = None,
+        metavar: str | None = None,
+        dest: str | None = None,
+        deprecated: bool = False,
+    ):
+        self.flags = flags
+        self.action = action
+        self.nargs = nargs
+        self.default = default
+        self.choices = choices
+        self.required = required
+        self.help = help
+        self.metavar = metavar
+        self.dest = dest
+        self.deprecated = deprecated
+
+
+class MuxGroup:
+    """A mutual exclusion group.
+
+    See
+    https://docs.python.org/3/library/argparse.html#argparse.ArgumentParser.add_mutually_exclusive_group
+    for more information.
+    """
+
+    args: tuple[Argument, ...]
+    required: bool
+
+    def __init__(self, *args: Argument, required: bool = False):
+        for arg in args:
+            if isinstance(arg, (Group, MuxGroup)):
+                raise ValueError("You cannot add groups to a mutual exclusion group")
+        self.args = args
+        self.required = required
+
+
+class Group:
+    """An argument group.
+
+    See https://docs.python.org/3/library/argparse.html#argument-groups for
+    more information.
+    """
+
+    title: str
+    args: tuple[Argument | MuxGroup, ...]
+    description: str | None
+    argument_default: argparse._SUPPRESS_T | None
+    conflict_handler: str
+
+    def __init__(
+        self,
+        title: str,
+        *args: Argument | MuxGroup,
+        description: str | None = None,
+        argument_default: argparse._SUPPRESS_T | None = None,
+        conflict_handler: str = "",
+    ):
+        for arg in args:
+            if isinstance(arg, Group):
+                raise ValueError(
+                    f"You cannot add the `{arg.title}` group to the group `{self.title}`"
+                )
+
+        self.args = args
+        self.title = title
+        self.description = description
+        self.argument_default = argument_default
+        self.conflict_handler = conflict_handler
+
+
+class InvalidArgumentCountException(Exception):
+    def __init__(self, name: str, num_args: int):
+        super().__init__(
+            f"task `{name}` was defined to take {num_args} "
+            + "arguments, but must be defined to take 0, 1, or 3 arguments"
+        )
+
+
+class Task:
+    name: str
+    func: TaskFunc
+    parser: argparse.ArgumentParser
+    allow_extra: bool
+    doc: str
+
+    def __init__(
+        self,
+        name: str,
+        func: TaskFunc,
+        parser: argparse.ArgumentParser,
+        allow_extra: bool = False,
+        doc: str = "",
+    ):
+        self.allow_extra = allow_extra
+        self.name = name
+        self.func = func
+        self.doc = doc
+        self.parser = parser
+
+    def validate_and_get_num_args(self) -> int:
+        num_args = len(inspect.signature(self.func).parameters.keys())
+
+        if num_args > 2:
+            raise InvalidArgumentCountException(self.name, num_args)
+
+        return num_args
+
+    @property
+    def short_doc(self) -> str:
+        doc = (self.doc or "").split("\n")[0]
+        if doc.endswith("."):
+            doc = doc[:-1]
+        return doc
+
+    @override
+    def __str__(self) -> str:
+        return self.name
+
+    def __call__(self, opt: argparse.Namespace, extra: list[str] | None = None) -> Any:
+        if extra is None:
+            extra = []
+
+        if is_two_arg(self.func):
+            return self.func(opt, extra)
+        elif is_one_arg(self.func):
+            return self.func(opt)
+        elif is_zero_arg(self.func):
+            return self.func()
 
 
 class TaskManager:
@@ -29,15 +206,31 @@ class TaskManager:
     And then they can be executed by calling `do.exec()`
     """
 
-    def __init__(self, parser=None, logfunc=print):
+    logfunc: Callable[[str], None]
+    parser: argparse.ArgumentParser
+    subparsers: argparse._SubParsersAction[argparse.ArgumentParser]
+    tasks: dict[str, Task]
+
+    def __init__(
+        self,
+        parser: None | argparse.ArgumentParser = None,
+        logfunc: Callable[[str], None] = print,
+    ):
         self.logfunc = logfunc
-        self.parser = parser or argparse.ArgumentParser(
-            prog=sys.argv[0], add_help=False
-        )
+
+        if parser is not None:
+            self.parser = parser
+        else:
+            self.parser = argparse.ArgumentParser(prog=sys.argv[0], add_help=False)
         self.subparsers = self.parser.add_subparsers()
         self.tasks = {}
 
-    def task(self, *arguments, name=None, allow_extra=False):
+    def task(
+        self,
+        *arguments: Group | Argument | MuxGroup,
+        name: str | None = None,
+        allow_extra: bool = False,
+    ) -> Callable[[TaskFunc], Any]:
         """Register a task.
 
         Usage:
@@ -66,24 +259,21 @@ class TaskManager:
           A decorator for a function.
         """
 
-        def decorator(func):
+        def decorator(func: TaskFunc):
             task_name = name or func.__name__.replace("__", ":").replace("_", "-")
             parser = self.subparsers.add_parser(
                 task_name, help=func.__doc__, description=func.__doc__
             )
             parser.set_defaults(func=func)
 
-            items = (
-                [arguments] if not isinstance(arguments, (list, tuple)) else arguments
-            )
-
-            for item in items:
+            for item in arguments:
                 if isinstance(item, (Group, MuxGroup)):
                     if isinstance(item, Group):
                         group = parser.add_argument_group(
                             title=item.title,
                             description=item.description,
-                            **item.kwargs,
+                            argument_default=item.argument_default,
+                            conflict_handler=item.conflict_handler,
                         )
                     else:
                         group = parser.add_mutually_exclusive_group(
@@ -93,7 +283,18 @@ class TaskManager:
                     for arg in item.args:
                         if not isinstance(arg, Argument):
                             raise ValueError(f"Value {arg} cannot be placed in a group")
-                        group.add_argument(*arg.args, **arg.kwargs)
+                        group.add_argument(
+                            *arg.flags,
+                            action=arg.action,
+                            nargs=arg.nargs,
+                            default=arg.default,
+                            choices=arg.choices,
+                            required=arg.required,
+                            help=arg.help,
+                            metavar=arg.metavar,
+                            dest=arg.dest,
+                            deprecated=arg.deprecated,
+                        )
                 else:
                     parser.add_argument(*item.args, **item.kwargs)
 
@@ -202,105 +403,6 @@ class TaskManager:
             self.fatal(f"function not defined for task `{task}`.")
 
         return task(opt, extra)
-
-
-class Argument:
-    """Argument for a task.
-
-    Multiple arguments can be passed to each task. The argument constructor
-    takes the same arguments as `argparse.ArgumentParser.add_argument`, see
-    https://docs.python.org/3/library/argparse.html#argparse.ArgumentParser.add_argument
-    for more information.
-    """
-
-    def __init__(self, *args, **kwargs):
-        self.args = args
-        self.kwargs = kwargs
-
-
-class Task:
-    def __init__(self, name, func, parser, allow_extra=False, doc=""):
-        self.allow_extra = allow_extra
-        self.name = name
-        self.func = func
-        self.num_args = self.validate_and_get_num_args()
-        self.doc = doc
-        self.parser = parser
-
-    def validate_and_get_num_args(self):
-        num_args = len(inspect.signature(self.func).parameters.keys())
-
-        if num_args > 2:
-            raise InvalidArgumentCountException(self.name, num_args)
-
-        return num_args
-
-    @property
-    def short_doc(self):
-        doc = (self.doc or "").split("\n")[0]
-        if doc.endswith("."):
-            doc = doc[:-1]
-        return doc
-
-    def __str__(self):
-        return self.name
-
-    def __call__(self, opt, extra=None):
-        if extra is None:
-            extra = []
-
-        if self.num_args == 2:
-            return self.func(opt, extra)
-        if self.num_args == 1:
-            return self.func(opt)
-        else:
-            return self.func()
-
-
-class Group:
-    """An argument group.
-
-    See https://docs.python.org/3/library/argparse.html#argument-groups for
-    more information.
-    """
-
-    def __init__(self, title, *args, description=None, **kwargs):
-        for arg in args:
-            if isinstance(arg, Group):
-                raise ValueError(
-                    f"You cannot add the `{arg.title}` group to the group `{self.title}`"
-                )
-
-        self.args = args
-        self.title = title
-        self.description = description
-        self.kwargs = kwargs
-
-
-class MuxGroup:
-    """A mutual exclusion group.
-
-    See
-    https://docs.python.org/3/library/argparse.html#argparse.ArgumentParser.add_mutually_exclusive_group
-    for more information.
-    """
-
-    def __init__(self, *args, required=False):
-        for arg in args:
-            if isinstance(arg, (Group, MuxGroup)):
-                raise ValueError(
-                    f"You cannot add groups to the mutual exclusion group `{self.title}`"
-                )
-        self.args = args
-        self.required = required
-
-
-class InvalidArgumentCountException(Exception):
-    def __init__(self, name, num_args):
-        super().__init__(
-            f"task `{name}` was defined to take {num_args} "
-            "arguments, but must be defined to take 0, 1, or 3 arguments"
-        )
 
 
 # export a default instance as `do`
