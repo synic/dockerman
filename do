@@ -14,14 +14,14 @@ import unittest
 from doot import do
 
 
-@do.task(passthrough=True)
-def test(opt):
+@do.task(allow_extra=True)
+def test(_, extra):
     """Run unit tests."""
     suite = unittest.TestLoader().discover("./t")
 
-    if opt.args:
+    if extra:
         tests = []
-        for arg in opt.args:
+        for arg in extra:
             test = unittest.TestLoader().loadTestsFromName(arg)
             tests.append(test)
         suite = unittest.TestSuite(tests)
@@ -30,10 +30,10 @@ def test(opt):
     runner.run(suite)
 
 
-@do.task(passthrough=True)
-def lint(opt):
+@do.task(allow_extra=True)
+def lint(_, extra):
     """Lint."""
-    do.run("pyright", opt.args)
+    do.run("pyright", extra)
 
 
 if __name__ == "__main__":

@@ -90,10 +90,10 @@ can be anything you want):
 
 from doot import do
 
-@do.task(passthrough=True)
-def bash(opt):
+@do.task(allow_extra=True)
+def bash(_, extra):
     """Bash shell on the web container."""
-    do.run("docker exec -it api bash", opt.args)
+    do.run("docker exec -it api bash", extra)
 
 
 @do.task()
@@ -120,10 +120,10 @@ def shell():
     do.run("docker exec -it api django-admin shell")
 
 
-@do.task(passthrough=True)
-def manage(opt):
+@do.task(allow_extra=True)
+def manage(_, extra):
     """Run a django management command."""
-    do.run("docker exec -it api django-admin", opt.args)
+    do.run("docker exec -it api django-admin", extra)
 
 
 @do.task(
@@ -175,19 +175,29 @@ docstring will be the documentation that appears when you type `./do help` or
 `./do help [task]`. All underscores will be converted to hyphens in the
 resulting task name.
 
-If you specify `passthrough=True`, all extra command line arguments can be
-passed to any `do.run` statements executed within the function
-(this is the purpose of the task function receiving the `opt` parameter,
-and passing `opt.args` parameter to `do.run`).
+The task function can take 0, 1, or 2 arguments. The first argument, `opt` will
+contain any parsed argument values. For example:
+
+```python
+@do.task(do.arg('-n', '--name'))
+def hello(opt):
+    print(f"Hello, {opt.name}")
+```
+
+The second argument only matters if you pass `allow_extra=True`. By default, if
+any command line arguments are passed that are not specified in `do.arg`
+arguments passed to `do.task`, an error message will be soon. If
+`allow_extra=True` is passed, then any extra arguments that were not specified
+will be passed as a list to the task function as the second argument.
 
 For example, if you'd like to run Django management commands in a docker
 container by just running `./do manage [cmd]`:
 
 ```python
-@do.task(passthrough=True)
-def manage(opt):
+@do.task(allow_extra=True)
+def manage(_, extra):
     """Run Django management commands."""
-    do.run("docker exec -it api django-admin", opt.args)
+    do.run("docker exec -it api django-admin", extra)
 ```
 
 Then when you run something like:

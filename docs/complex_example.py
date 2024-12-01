@@ -27,10 +27,10 @@ os.environ["DOCKER_BUILDKIT"] = "1"
 os.environ["COMPOSE_DOCKER_CLI_BUILD"] = "1"
 
 
-@do.task(passthrough=True)
-def bash(opt):
+@do.task(allow_extra=True)
+def bash(_, extra):
     """Bash shell on the api container."""
-    do.run("docker exec -it api bash", opt.args)
+    do.run("docker exec -it api bash", extra)
 
 
 @do.task()
@@ -42,10 +42,10 @@ def start():
     do.run("docker-compose up -d")
 
 
-@do.task(passthrough=True)
-def logs(opt):
+@do.task(allow_extra=True)
+def logs(_, extra):
     """Show logs for main api container."""
-    do.run("docker logs -f -n 1000 api", opt.args)
+    do.run("docker logs -f -n 1000 api", extra)
 
 
 @do.task()
@@ -68,55 +68,55 @@ def debug():
     do.run("docker attach api")
 
 
-@do.task(passthrough=True)
-def lint(opt):
+@do.task(allow_extra=True)
+def lint(_, extra):
     """Lint the code."""
-    do.run("docker exec -it api yarn lint", opt.args)
+    do.run("docker exec -it api yarn lint", extra)
 
 
-@do.task(passthrough=True)
-def typeorm(opt):
+@do.task(allow_extra=True)
+def typeorm(_, extra):
     """Run migration commands."""
-    do.run("docker exec -it api yarn typeorm:cli", opt.args)
+    do.run("docker exec -it api yarn typeorm:cli", extra)
 
 
-@do.task()
-def migrate(opt):
+@do.task(allow_extra=True)
+def migrate(_, extra):
     """Run all migrations."""
-    do.run("docker exec -it yarn typeorm:cli migration:run", opt.args)
+    do.run("docker exec -it yarn typeorm:cli migration:run", extra)
 
 
-@do.task(passthrough=True)
-def yarn(opt):
+@do.task(allow_extra=True)
+def yarn(_, extra):
     """Run yarn commands."""
-    do.run("docker exec -it yarn", opt.args)
+    do.run("docker exec -it yarn", extra)
 
 
-@do.task(passthrough=True)
-def manage(opt):
+@do.task(allow_extra=True)
+def manage(_, extra):
     """Run management commands."""
-    do.run("docker exec -it yarn manage", opt.args)
+    do.run("docker exec -it yarn manage", extra)
 
 
-@do.task(do.arg("-n", "--name", help="migration file base name"))
-def createmigration(opt):
+@do.task(do.arg("-n", "--name", help="migration file base name"), allow_extra=True)
+def createmigration(opt, extra):
     """Create a migration with a name."""
     do.run(
         "docker exec -it api"
         f"yarn typeorm:plaincli migration:create "
         f"./src/databases/migrations/default/{opt.name}",
-        opt.args,
+        extra,
     )
 
 
-@do.task(do.arg("-n", "--name", help="migration file base name"))
-def generatemigration(opt):
+@do.task(do.arg("-n", "--name", help="migration file base name"), allow_extra=True)
+def generatemigration(opt, extra):
     """Generate a migration with a name."""
     do.run(
         "docker exec -it api"
         f"yarn typeorm:cli migration:generate "
         f"./src/databases/migrations/default/{opt.name}",
-        opt.args,
+        extra,
     )
 
 
@@ -249,11 +249,11 @@ def pod():
     do.run(f"kubectl exec -n awesome -ti {str(pod)} -- /bin/bash")
 
 
-@do.task()
-def build_essential(opt):
+@do.task(allow_extra=True)
+def build_essential(_, extra):
     """Install build deps for native node packages."""
-    do.run("docker exec -it api apt update", opt.args)
-    do.run("docker exec -it apt install build-essential", opt.args)
+    do.run("docker exec -it api apt update", extra)
+    do.run("docker exec -it apt install build-essential", extra)
 
 
 if __name__ == "__main__":

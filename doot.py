@@ -21,9 +21,9 @@ class TaskManager:
 
     do = doot.TaskManager()
 
-    @do.task(doot.arg("-n", "--name", default="world"))
-    def hello(opts)
-        print(f"Hello, {opts.name}!")
+    @do.task(do.arg("-n", "--name", default="world"))
+    def hello(opt)
+        print(f"Hello, {opt.name}!")
     ```
 
     And then they can be executed by calling `do.exec()`
@@ -37,7 +37,35 @@ class TaskManager:
         self.subparsers = self.parser.add_subparsers()
         self.tasks = {}
 
-    def task(self, *arguments, name=None, passthrough=False):
+    def task(self, *arguments, name=None, allow_extra=False):
+        """Register a task.
+
+        Usage:
+
+        ```python
+        import doot
+
+        do = doot.TaskManager()
+
+        @do.task(do.arg("-n", "--name", default="world"), allow_extra=True)
+        def hello(opt, extra)
+            print(f"Hello, {opt.name}!")
+            print(f"Extra arguments were {extra}.")
+        ```
+
+        Args:
+          arguments: One or more argument, group, or mux group.
+          name: The name of the task (default is the name of the function,
+            with `__` replaced with `:` and `_` replaced with `-`).
+          allow_extra: By default, if arguments are passed on the command line
+            that were not registered with this task, an error will be shown.
+            Set this to `True` to allow extra arguments. They will be passed
+            as the second parameter to the task function.
+
+        Returns:
+          A decorator for a function.
+        """
+
         def decorator(func):
             task_name = name or func.__name__.replace("__", ":").replace("_", "-")
             parser = self.subparsers.add_parser(
@@ -70,7 +98,7 @@ class TaskManager:
                     parser.add_argument(*item.args, **item.kwargs)
 
             task = Task(
-                task_name, func, parser, passthrough=passthrough, doc=func.__doc__
+                task_name, func, parser, allow_extra=allow_extra, doc=func.__doc__
             )
 
             self.tasks[task_name] = task
@@ -165,21 +193,15 @@ class TaskManager:
             self.print_help(name=name, splash=splash)
             sys.exit(1)
 
-        if task.passthrough:
-            opts = argparse.Namespace()
-            opts.args = args[1:]
-            return task(opts)
+        if task.allow_extra:
+            opt, extra = self.parser.parse_known_args(args)
+        else:
+            opt, extra = self.parser.parse_args(args), []
 
-        opts, extras = self.parser.parse_known_args(args)
-
-        if extras:
-            task.parser.print_help()
-            sys.exit(1)
-
-        if not opts.func:
+        if not opt.func:
             self.fatal(f"function not defined for task `{task}`.")
 
-        return task(opts)
+        return task(opt, extra)
 
 
 class Argument:
@@ -197,18 +219,18 @@ class Argument:
 
 
 class Task:
-    def __init__(self, name, func, parser, passthrough=False, doc=""):
+    def __init__(self, name, func, parser, allow_extra=False, doc=""):
+        self.allow_extra = allow_extra
         self.name = name
         self.func = func
         self.num_args = self.validate_and_get_num_args()
         self.doc = doc
         self.parser = parser
-        self.passthrough = passthrough
 
     def validate_and_get_num_args(self):
         num_args = len(inspect.signature(self.func).parameters.keys())
 
-        if num_args > 1:
+        if num_args > 2:
             raise InvalidArgumentCountException(self.name, num_args)
 
         return num_args
@@ -223,9 +245,14 @@ class Task:
     def __str__(self):
         return self.name
 
-    def __call__(self, opts):
+    def __call__(self, opt, extra=None):
+        if extra is None:
+            extra = []
+
+        if self.num_args == 2:
+            return self.func(opt, extra)
         if self.num_args == 1:
-            return self.func(opts)
+            return self.func(opt)
         else:
             return self.func()
 
@@ -238,6 +265,12 @@ class Group:
     """
 
     def __init__(self, title, *args, description=None, **kwargs):
+        for arg in args:
+            if isinstance(arg, Group):
+                raise ValueError(
+                    f"You cannot add the `{arg.title}` group to the group `{self.title}`"
+                )
+
         self.args = args
         self.title = title
         self.description = description
@@ -253,6 +286,11 @@ class MuxGroup:
     """
 
     def __init__(self, *args, required=False):
+        for arg in args:
+            if isinstance(arg, (Group, MuxGroup)):
+                raise ValueError(
+                    f"You cannot add groups to the mutual exclusion group `{self.title}`"
+                )
         self.args = args
         self.required = required
 
@@ -261,7 +299,7 @@ class InvalidArgumentCountException(Exception):
     def __init__(self, name, num_args):
         super().__init__(
             f"task `{name}` was defined to take {num_args} "
-            "arguments, but must be defined to take 0 or 1 arguments"
+            "arguments, but must be defined to take 0, 1, or 3 arguments"
         )
 
 
