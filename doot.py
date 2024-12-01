@@ -288,9 +288,8 @@ class MuxGroup:
     def __init__(self, *args, required=False):
         for arg in args:
             if isinstance(arg, (Group, MuxGroup)):
-                raise ValueError(
-                    f"You cannot add groups to the mutual exclusion group `{self.title}`"
-                )
+                raise ValueError("You cannot add groups to a mutual exclusion group")
+
         self.args = args
         self.required = required
 
