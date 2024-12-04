@@ -10,14 +10,13 @@ r"""Doot Task File.
 
 import sys
 
-
 from doot import do
 
 
 @do.task(allow_extra=True)
 def test(_, extra):
     """Run unit tests."""
-    args = ["pytest", "./t"]
+    args = ["pytest", "--cov=doot", "./t"]
     if extra:
         args.extend(extra)
     do.run(args)

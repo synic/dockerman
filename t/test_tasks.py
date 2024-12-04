@@ -1,4 +1,5 @@
 import subprocess
+
 import pytest
 
 import doot
@@ -242,3 +243,203 @@ def test_args_str_with_quote(do, mocker):
     spy = mocker.spy(subprocess, "call")
     do.run('ls "-lh foo"', echo=False)
     spy.assert_called_once_with(["ls", '"-lh foo"'])
+
+
+def test_args_list_extra_list(do, mocker):
+    spy = mocker.spy(subprocess, "call")
+    do.run(["ls", "-lh"], ["-a", "-w"], echo=False)
+    spy.assert_called_once_with(["ls", "-lh", "-a", "-w"])
+
+
+def test_task_group_execution(do):
+    @do.task(
+        do.arg("-n", default="Woot"),
+        do.grp(
+            "T-Shirt",
+            do.arg("--size"),
+            do.arg("--color"),
+        ),
+    )
+    def hello(opt):
+        return [opt.n, opt.size, opt.color]
+
+    _ = hello
+    do.exec(["hello", "--size", "L", "--color", "blue"])
+
+
+def test_task_mux_group_execution(do):
+    @do.task(
+        do.arg("-n", default="Woot"),
+        do.muxgrp(
+            do.arg("--size"),
+            do.arg("--color"),
+        ),
+    )
+    def hello(opt):
+        return [opt.n, opt.size, opt.color]
+
+    _ = hello
+    do.exec(["hello", "--size", "L"])
+
+
+def test_task_invalid_argument_type(do):
+    with pytest.raises((TypeError, AttributeError)):
+
+        @do.task(123)
+        def hello():
+            pass
+
+        _ = hello
+
+
+def test_task_mux_group_execution_fails_with_both_args(do):
+    @do.task(
+        do.arg("-n", default="Woot"),
+        do.muxgrp(
+            do.arg("--size"),
+            do.arg("--color"),
+        ),
+    )
+    def hello(opt):
+        return [opt.n, opt.size, opt.color]
+
+    _ = hello
+
+    with pytest.raises(SystemExit):
+        do.exec(["hello", "--size", "L", "--color", "blue"])
+
+
+def test_run_with_cwd(do, mocker):
+    spy = mocker.spy(subprocess, "call")
+    do.run("ls -lh", cwd="/tmp", echo=False)
+    spy.assert_called_once_with(["ls", "-lh"], cwd="/tmp")
+
+
+def test_run_with_env(do, mocker):
+    spy = mocker.spy(subprocess, "call")
+    env = {"TEST": "value"}
+    do.run("ls -lh", env=env, echo=False)
+    spy.assert_called_once_with(["ls", "-lh"], env=env)
+
+
+def test_run_with_shell(do, mocker):
+    spy = mocker.spy(subprocess, "call")
+    do.run("ls -lh", shell=True, echo=False)
+    spy.assert_called_once_with(["ls", "-lh"], shell=True)
+
+
+def test_task_with_default_values(do):
+    @do.task(
+        do.arg("--name", default="world"),
+        do.arg("--count", type=int, default=1),
+    )
+    def hello(opt):
+        return [opt.name, opt.count]
+
+    _ = hello
+
+    r = do.exec(["hello"])
+    assert r == ["world", 1]
+
+
+def test_task_with_choices(do):
+    @do.task(do.arg("--color", choices=["red", "blue", "green"]))
+    def hello(opt):
+        return opt.color
+
+    _ = hello
+
+    r = do.exec(["hello", "--color", "blue"])
+    assert r == "blue"
+
+    with pytest.raises(SystemExit):
+        do.exec(["hello", "--color", "yellow"])
+
+
+def test_task_with_required_arg(do):
+    @do.task(do.arg("--name", required=True))
+    def hello(opt):
+        return opt.name
+
+    _ = hello
+
+    with pytest.raises(SystemExit):
+        do.exec(["hello"])
+
+    r = do.exec(["hello", "--name", "world"])
+    assert r == "world"
+
+
+def test_run_with_echo(do, mocker):
+    spy_print = mocker.patch.object(do, "logfunc")
+    spy_call = mocker.spy(subprocess, "call")
+    do.run("ls -lh", echo=True)
+    spy_print.assert_called_with("\x1b[96m -> ls -lh\n\x1b[0m")
+    spy_call.assert_called_once_with(["ls", "-lh"])
+
+
+def test_task_with_count_action(do):
+    @do.task(do.arg("-v", action="count", default=0))
+    def hello(opt):
+        return opt.v
+
+    _ = hello
+
+    r = do.exec(["hello"])
+    assert r == 0
+
+    r = do.exec(["hello", "-v"])
+    assert r == 1
+
+    r = do.exec(["hello", "-vvv"])
+    assert r == 3
+
+
+def test_task_with_append_action(do):
+    @do.task(do.arg("--item", action="append"))
+    def hello(opt):
+        return opt.item
+
+    _ = hello
+
+    r = do.exec(["hello", "--item", "a", "--item", "b"])
+    assert r == ["a", "b"]
+
+
+def test_run_failure(do):
+    assert 1 == do.run("false")
+
+
+def test_exec_unknown_task(do):
+    with pytest.raises(SystemExit):
+        with pytest.raises(KeyError):
+            do.exec(["nonexistent"])
+
+
+def test_task_with_nargs(do):
+    @do.task(do.arg("--coords", nargs=2, type=int))
+    def hello(opt):
+        return opt.coords
+
+    _ = hello
+
+    r = do.exec(["hello", "--coords", "1", "2"])
+    assert r == [1, 2]
+
+
+def test_task_with_metavar(do):
+    @do.task(do.arg("--name", metavar="NAME"))
+    def hello(opt):
+        return opt.name
+
+    _ = hello
+
+    parser = do.tasks["hello"].parser
+    actions = parser._actions
+    name_action = [a for a in actions if a.dest == "name"][0]
+    assert name_action.metavar == "NAME"
+
+
+def test_fatal(do):
+    with pytest.raises(SystemExit):
+        do.fatal("foo")

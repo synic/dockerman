@@ -160,8 +160,7 @@ class TaskManager:
         dest: Optional[str] = None,
         required: bool = False,
         **kwargs: Any,
-    ) -> "Argument":
-        ...
+    ) -> "Argument": ...
 
     @overload
     def arg(
@@ -173,8 +172,7 @@ class TaskManager:
         dest: Union[str, None] = None,
         required: bool = False,
         **kwargs: Any,
-    ) -> "Argument":
-        ...
+    ) -> "Argument": ...
 
     @overload
     def arg(
@@ -193,8 +191,7 @@ class TaskManager:
         metavar: Union[str, Tuple[str, ...], None] = None,
         dest: Union[str, None] = None,
         **kwargs: Any,
-    ) -> "Argument":
-        ...
+    ) -> "Argument": ...
 
     def arg(
         self,
@@ -256,8 +253,7 @@ class TaskManager:
             args_list = [*args_list, *extra_list]
 
         if echo:
-            self.log(f" -> {subprocess.list2cmdline(args_list)}", "\033[96m")
-            self.log("")
+            self.log(f" -> {subprocess.list2cmdline(args_list)}\n", "\033[96m")
 
         return subprocess.call(args_list, **kwargs)
 
@@ -390,8 +386,7 @@ class Argument:
         dest: Union[str, None] = None,
         required: bool = False,
         **kwargs: Any,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(
@@ -403,8 +398,7 @@ class Argument:
         dest: Union[str, None] = None,
         required: bool = False,
         **kwargs: Any,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @overload
     def __init__(
@@ -423,8 +417,7 @@ class Argument:
         metavar: Union[str, Tuple[str, ...], None] = None,
         dest: Union[str, None] = None,
         **kwargs: Any,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     def __init__(
         self,
