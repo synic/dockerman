@@ -13,7 +13,20 @@ def get_splash_from_calling_module() -> str:
 
 
 class TaskManager:
-    """Task registry and runner."""
+    """Task registry and runner.
+
+    Tasks can be registered by using the `task` decorator, like so:
+
+    ```python
+    import doot
+    do = doot.TaskManager()
+    @do.task(do.arg("-n", "--name", default="world"))
+    def hello(opt)
+        print(f"Hello, {opt.name}!")
+    ```
+
+    And then they can be executed by calling `do.exec()`
+    """
 
     logfunc: Callable[[str], None]
     parser: argparse.ArgumentParser
@@ -319,7 +332,13 @@ class TaskManager:
 
 
 class Argument:
-    """Argument for a task."""
+    """Argument for a task.
+
+    Multiple arguments can be passed to each task. The argument constructor
+    takes the same arguments as `argparse.ArgumentParser.add_argument`, see
+    https://docs.python.org/3/library/argparse.html#argparse.ArgumentParser.add_argument
+    for more information.
+    """
 
     args: tuple[str, ...]
     action: (
@@ -483,7 +502,11 @@ class Task:
 
 
 class Group:
-    """An argument group."""
+    """An argument group.
+
+    See https://docs.python.org/3/library/argparse.html#argument-groups for
+    more information.
+    """
 
     args: tuple["Argument", ...]
     title: str
@@ -510,7 +533,12 @@ class Group:
 
 
 class MuxGroup:
-    """A mutual exclusion group."""
+    """A mutual exclusion group.
+
+    See
+    https://docs.python.org/3/library/argparse.html#argparse.ArgumentParser.add_mutually_exclusive_group
+    for more information.
+    """
 
     args: tuple["Argument", ...]
     required: bool
