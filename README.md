@@ -7,8 +7,8 @@
 # Simple Zero Dependency Task Runner
 
 This is a simple, zero dependency (except Python 3, which comes installed on
-most *nix operating systems) task runner. Similar to `make`, but meant to be
-used for non-C style projects.
+most *nix operating systems. Python 3.8.0 or greater is required) task runner.
+Similar to `make`, but meant to be used for non-C style projects.
 
 Python is ideal for this sort of thing, because it has a pretty comprehensive
 standard library; where most things you might need are built right in. However,

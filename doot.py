@@ -3,7 +3,18 @@ import inspect
 import shlex
 import subprocess
 import sys
-from typing import Callable, Any, Literal, overload, Type
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    Literal,
+    Optional,
+    Tuple,
+    Type,
+    Union,
+    overload,
+)
 
 
 def get_splash_from_calling_module() -> str:
@@ -19,7 +30,9 @@ class TaskManager:
 
     ```python
     import doot
+
     do = doot.TaskManager()
+
     @do.task(do.arg("-n", "--name", default="world"))
     def hello(opt)
         print(f"Hello, {opt.name}!")
@@ -31,11 +44,11 @@ class TaskManager:
     logfunc: Callable[[str], None]
     parser: argparse.ArgumentParser
     subparser: argparse._SubParsersAction
-    tasks: dict[str, "Task"]
+    tasks: Dict[str, "Task"]
 
     def __init__(
         self,
-        parser: argparse.ArgumentParser | None = None,
+        parser: Union[argparse.ArgumentParser, None] = None,
         logfunc: Callable[[str], None] = print,
     ) -> None:
         self.logfunc = logfunc
@@ -48,7 +61,7 @@ class TaskManager:
     def task(
         self,
         *arguments: "Argument | Group | MuxGroup",
-        name: str | None = None,
+        name: Union[str, None] = None,
         allow_extra: bool = False,
     ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
         """Register a task."""
@@ -130,7 +143,7 @@ class TaskManager:
         self,
         title: str,
         *args: "Argument",
-        description: str | None = None,
+        description: Optional[str] = None,
         **kwargs: Any,
     ) -> "Group":
         return Group(title, *args, description=description, **kwargs)
@@ -143,11 +156,12 @@ class TaskManager:
         self,
         *name_or_flags: str,
         action: Literal["store_true", "store_false"],
-        help: str | None = None,
-        dest: str | None = None,
+        help: Optional[str] = None,
+        dest: Optional[str] = None,
         required: bool = False,
         **kwargs: Any,
-    ) -> "Argument": ...
+    ) -> "Argument":
+        ...
 
     @overload
     def arg(
@@ -155,35 +169,37 @@ class TaskManager:
         *name_or_flags: str,
         action: Literal["store_const", "append_const"],
         const: Any,
-        help: str | None = None,
-        dest: str | None = None,
+        help: Union[str, None] = None,
+        dest: Union[str, None] = None,
         required: bool = False,
         **kwargs: Any,
-    ) -> "Argument": ...
+    ) -> "Argument":
+        ...
 
     @overload
     def arg(
         self,
         *name_or_flags: str,
-        action: (
-            Literal["store", "append", "extend"] | Type[argparse.Action] | None
-        ) = None,
-        nargs: int | Literal["?", "*", "+", "..."] | None = None,
+        action: Union[
+            Literal["store", "append", "extend"], Type[argparse.Action], None
+        ] = None,
+        nargs: Union[int, Literal["?", "*", "+", "..."], None] = None,
         const: Any = None,
         default: Any = None,
-        type: Callable[[str], Any] | None = None,
-        choices: list[Any] | None = None,
+        type: Optional[Callable[[str], Any]] = None,
+        choices: Optional[List[Any]] = None,
         required: bool = False,
-        help: str | None = None,
-        metavar: str | tuple[str, ...] | None = None,
-        dest: str | None = None,
+        help: Union[str, None] = None,
+        metavar: Union[str, Tuple[str, ...], None] = None,
+        dest: Union[str, None] = None,
         **kwargs: Any,
-    ) -> "Argument": ...
+    ) -> "Argument":
+        ...
 
     def arg(
         self,
         *name_or_flags: str,
-        action: (
+        action: Union[
             Literal[
                 "store",
                 "store_true",
@@ -192,19 +208,19 @@ class TaskManager:
                 "append",
                 "append_const",
                 "extend",
-            ]
-            | Type[argparse.Action]
-            | None
-        ) = None,
-        nargs: int | Literal["?", "*", "+", "..."] | None = None,
+            ],
+            Type[argparse.Action],
+            None,
+        ] = None,
+        nargs: Union[int, Literal["?", "*", "+", "..."], None] = None,
         const: Any = None,
         default: Any = None,
-        type: Callable[[str], Any] | None = None,
-        choices: list[Any] | None = None,
+        type: Union[Callable[[str], Any], None] = None,
+        choices: Union[List[Any], None] = None,
         required: bool = False,
-        help: str | None = None,
-        metavar: str | tuple[str, ...] | None = None,
-        dest: str | None = None,
+        help: Union[str, None] = None,
+        metavar: Union[str, Tuple[str, ...], None] = None,
+        dest: Union[str, None] = None,
         **kwargs: Any,
     ) -> "Argument":
         return Argument(
@@ -224,15 +240,15 @@ class TaskManager:
 
     def run(
         self,
-        args: str | list[str],
-        extra: str | list[str] | None = None,
+        args: Union[str, List[str]],
+        extra: Union[str, List[str], None] = None,
         echo: bool = True,
         **kwargs: Any,
     ) -> int:
         args_list: list[str] = (
             shlex.split(args, posix=False) if isinstance(args, str) else args
         )
-        extra_list: list[str] | None = (
+        extra_list: Optional[List[str]] = (
             shlex.split(extra, posix=False) if isinstance(extra, str) else extra
         )
 
@@ -247,8 +263,8 @@ class TaskManager:
 
     def print_help(
         self,
-        name: str | None = None,
-        splash: str | None = None,
+        name: Union[str, None] = None,
+        splash: Union[str, None] = None,
         show_usage: bool = True,
     ) -> None:
         name = name or sys.argv[0]
@@ -287,9 +303,9 @@ class TaskManager:
 
     def exec(
         self,
-        args: list[str] | None = None,
-        name: str | None = None,
-        splash: Callable[[], str] | str = get_splash_from_calling_module,
+        args: Optional[List[str]] = None,
+        name: Optional[str] = None,
+        splash: Union[Callable[[], str], str] = get_splash_from_calling_module,
     ) -> Any:
         name = name or sys.argv[0]
         splash_str: str = (splash() if callable(splash) else splash) or ""
@@ -340,8 +356,8 @@ class Argument:
     for more information.
     """
 
-    args: tuple[str, ...]
-    action: (
+    args: Tuple[str, ...]
+    action: Union[
         Literal[
             "store",
             "store_true",
@@ -350,31 +366,32 @@ class Argument:
             "append",
             "append_const",
             "extend",
-        ]
-        | Type[argparse.Action]
-        | None
-    )
-    nargs: int | Literal["?", "*", "+", "..."] | None
+        ],
+        Type[argparse.Action],
+        None,
+    ]
+    nargs: Union[int, Literal["?", "*", "+", "..."], None]
     const: Any
     default: Any
-    type: Callable[[str], Any] | None
-    choices: list[Any] | None
+    type: Union[Callable[[str], Any], None]
+    choices: Union[List[Any], None]
     required: bool
-    help: str | None
-    metavar: str | tuple[str, ...] | None
-    dest: str | None
-    extra_kwargs: dict[str, Any]
+    help: Union[str, None]
+    metavar: Union[str, Tuple[str, ...], None]
+    dest: Union[str, None]
+    extra_kwargs: Dict[str, Any]
 
     @overload
     def __init__(
         self,
         *name_or_flags: str,
         action: Literal["store_true", "store_false"],
-        help: str | None = None,
-        dest: str | None = None,
+        help: Union[str, None] = None,
+        dest: Union[str, None] = None,
         required: bool = False,
         **kwargs: Any,
-    ) -> None: ...
+    ) -> None:
+        ...
 
     @overload
     def __init__(
@@ -382,35 +399,37 @@ class Argument:
         *name_or_flags: str,
         action: Literal["store_const", "append_const"],
         const: Any,
-        help: str | None = None,
-        dest: str | None = None,
+        help: Union[str, None] = None,
+        dest: Union[str, None] = None,
         required: bool = False,
         **kwargs: Any,
-    ) -> None: ...
+    ) -> None:
+        ...
 
     @overload
     def __init__(
         self,
         *name_or_flags: str,
-        action: (
-            Literal["store", "append", "extend"] | Type[argparse.Action] | None
-        ) = None,
-        nargs: int | Literal["?", "*", "+", "..."] | None = None,
+        action: Union[
+            Literal["store", "append", "extend"], Type[argparse.Action], None
+        ] = None,
+        nargs: Union[int, Literal["?", "*", "+", "..."], None] = None,
         const: Any = None,
         default: Any = None,
-        type: Callable[[str], Any] | None = None,
-        choices: list[Any] | None = None,
+        type: Union[Callable[[str], Any], None] = None,
+        choices: Union[List[Any], None] = None,
         required: bool = False,
-        help: str | None = None,
-        metavar: str | tuple[str, ...] | None = None,
-        dest: str | None = None,
+        help: Union[str, None] = None,
+        metavar: Union[str, Tuple[str, ...], None] = None,
+        dest: Union[str, None] = None,
         **kwargs: Any,
-    ) -> None: ...
+    ) -> None:
+        ...
 
     def __init__(
         self,
         *name_or_flags: str,
-        action: (
+        action: Union[
             Literal[
                 "store",
                 "store_true",
@@ -419,19 +438,19 @@ class Argument:
                 "append",
                 "append_const",
                 "extend",
-            ]
-            | Type[argparse.Action]
-            | None
-        ) = None,
-        nargs: int | Literal["?", "*", "+", "..."] | None = None,
+            ],
+            Type[argparse.Action],
+            None,
+        ] = None,
+        nargs: Union[int, Literal["?", "*", "+", "..."], None] = None,
         const: Any = None,
         default: Any = None,
-        type: Callable[[str], Any] | None = None,
-        choices: list[Any] | None = None,
+        type: Union[Callable[[str], Any], None] = None,
+        choices: Union[List[Any], None] = None,
         required: bool = False,
-        help: str | None = None,
-        metavar: str | tuple[str, ...] | None = None,
-        dest: str | None = None,
+        help: Union[str, None] = None,
+        metavar: Union[str, Tuple[str, ...], None] = None,
+        dest: Union[str, None] = None,
         **kwargs: Any,
     ) -> None:
         self.args = name_or_flags
@@ -462,7 +481,7 @@ class Task:
         func: Callable[..., Any],
         parser: argparse.ArgumentParser,
         allow_extra: bool = False,
-        doc: str | None = None,
+        doc: Optional[str] = None,
     ) -> None:
         self.allow_extra = allow_extra
         self.name = name
@@ -489,7 +508,9 @@ class Task:
     def __str__(self) -> str:
         return self.name
 
-    def __call__(self, opt: argparse.Namespace, extra: list[str] | None = None) -> Any:
+    def __call__(
+        self, opt: argparse.Namespace, extra: Union[List[str], None] = None
+    ) -> Any:
         if extra is None:
             extra = []
 
@@ -508,16 +529,16 @@ class Group:
     more information.
     """
 
-    args: tuple["Argument", ...]
+    args: Tuple["Argument", ...]
     title: str
-    description: str | None
-    kwargs: dict[str, Any]
+    description: Union[str, None]
+    kwargs: Dict[str, Any]
 
     def __init__(
         self,
         title: str,
         *args: "Argument",
-        description: str | None = None,
+        description: Union[str, None] = None,
         **kwargs: Any,
     ) -> None:
         for arg in args:
@@ -540,7 +561,7 @@ class MuxGroup:
     for more information.
     """
 
-    args: tuple["Argument", ...]
+    args: Tuple["Argument", ...]
     required: bool
 
     def __init__(self, *args: "Argument", required: bool = False) -> None:
