@@ -38,5 +38,5 @@ def lint(_, extra):
 
 if __name__ == "__main__":
     module = sys.modules[__name__]
-    splash = "\n".join(module.__doc__.split("\n")[1:-1])
+    splash = "\n".join(module.__doc__.split("\n")[1:-1]) if module.__doc__ else ""
     do.exec(splash=splash)
