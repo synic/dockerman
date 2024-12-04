@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/sh
 
 project_name="Awesome Project"
 dofile="./do"
@@ -62,32 +62,27 @@ EOF
     chmod +x "${dofile}"
   }
 
-  verlte() {
-    [ "$1" = "`echo -e "$1\n$2" | sort -V | head -n1`" ]
-  }
-
-  verlt() {
-    [ "$1" = "$2" ] && return 1 || verlte $1 $2
-  }
-
   validate_python_version() {
-    path_to_python=$(which python3)
-
-    if [ -z "${path_to_python}" ]; then
-      path_to_python=$(which python)
-    fi
-
-    if [ -z "${path_to_python}" ]; then
-      echo "Unable to locate python executable. Is it in your \$PATH?"
+    # Find Python executable
+    if command -v python3 >/dev/null 2>&1; then
+      path_to_python="python3"
+    elif command -v python >/dev/null 2>&1; then
+      path_to_python="python"
+    else
+      printf "Unable to locate python executable. Is it in your \$PATH?\n"
       exit 1
     fi
 
-    output=$(bash -c "${path_to_python} --version")
-    version="${output##* }"
+    # Get version number
+    version=$($path_to_python -c "import sys; print('.'.join(map(str, sys.version_info[:3])))")
 
-    if verlt "${version}" "${required_python_version}"; then
-      echo "Your python version \`${version}\` is too old."
-      echo "\`${required_python_version}\` or greater is required."
+    # Compare versions using sort -V
+    if printf "%s\n%s\n" "$required_python_version" "$version" | sort -V -C; then
+      # required_python_version <= version, which is what we want
+      return 0
+    else
+      printf "Your python version %s is too old.\n" "$version"
+      printf "%s or greater is required.\n" "$required_python_version"
       exit 1
     fi
   }
@@ -95,25 +90,25 @@ EOF
   install() {
     validate_python_version
 
-    echo -n "Project name [${project_name}]: "
-    read temp_project_name
+    printf "Project name [%s]: " "${project_name}"
+    read -r temp_project_name
 
-    if [ ! -z "${temp_project_name}" ]; then
-      project_name=$temp_project_name;
+    if [ -n "${temp_project_name}" ]; then
+      project_name=$temp_project_name
     fi
 
-    echo -n "Install location [${install_location}]: "
-    read temp_install_location
+    printf "Install location [%s]: " "${install_location}"
+    read -r temp_install_location
 
-    if [ ! -z "${temp_install_location}" ]; then
-      install_location=$temp_install_location;
+    if [ -n "${temp_install_location}" ]; then
+      install_location=$temp_install_location
     fi
 
-    echo -n "Entrypoint: [${dofile}]: "
-    read temp_dofile
+    printf "Entrypoint: [%s]: " "${dofile}"
+    read -r temp_dofile
 
-    if [ ! -z "${temp_dofile}" ]; then
-      dofile=$temp_dofile;
+    if [ -n "${temp_dofile}" ]; then
+      dofile=$temp_dofile
     fi
 
     curl --create-dirs -O --output-dir "${install_location}" \
