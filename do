@@ -9,7 +9,7 @@ r"""Doot Task File.
 """
 
 import sys
-import unittest
+
 
 from doot import do
 
@@ -17,17 +17,10 @@ from doot import do
 @do.task(allow_extra=True)
 def test(_, extra):
     """Run unit tests."""
-    suite = unittest.TestLoader().discover("./t")
-
+    args = ["pytest", "./t"]
     if extra:
-        tests = []
-        for arg in extra:
-            test = unittest.TestLoader().loadTestsFromName(arg)
-            tests.append(test)
-        suite = unittest.TestSuite(tests)
-
-    runner = unittest.TextTestRunner()
-    runner.run(suite)
+        args.extend(extra)
+    do.run(args)
 
 
 @do.task(allow_extra=True)
