@@ -64,7 +64,61 @@ class TaskManager:
         name: Union[str, None] = None,
         allow_extra: bool = False,
     ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
-        """Register a task."""
+        """Register a function as a command-line task.
+
+        This decorator registers a function as a task that can be executed from the command line.
+        The decorated function should accept either no arguments, one argument (the parsed options),
+        or two arguments (parsed options and remaining arguments).
+
+        Args:
+            *arguments: Variable number of Argument, Group, or MuxGroup objects that define
+                the command-line interface for this task.
+            name: Optional custom name for the task. If not provided, the function name is used
+                with underscores converted to hyphens and double underscores to colons.
+            allow_extra: If True, allows additional command-line arguments after the defined ones.
+                These will be passed to the task function as the second argument.
+
+        Returns:
+            A decorator function that registers the task.
+
+        Examples:
+            Basic task with arguments:
+                >>> @do.task(
+                ...     do.arg("-n", "--name", help="Your name"),
+                ...     do.arg("--verbose", action="store_true")
+                ... )
+                ... def greet(opt):
+                ...     if opt.verbose:
+                ...         print(f"Hello, {opt.name}!")
+                ...     else:
+                ...         print(f"Hi {opt.name}")
+
+            Task with a custom name:
+                >>> @do.task(
+                ...     do.arg("--count", type=int),
+                ...     name="count-to"
+                ... )
+                ... def count(opt):
+                ...     for i in range(opt.count):
+                ...         print(i)
+
+            Task with argument groups:
+                >>> @do.task(
+                ...     do.grp("input",
+                ...         do.arg("--input-file"),
+                ...         do.arg("--input-format")
+                ...     ),
+                ...     do.grp("output",
+                ...         do.arg("--output-file"),
+                ...         do.arg("--output-format")
+                ...     )
+                ... )
+                ... def convert(opt):
+                ...     pass
+
+        Raises:
+            InvalidArgumentCountException: If the decorated function accepts more than 2 arguments.
+        """
 
         def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
             task_name = name or func.__name__.replace("__", ":").replace("_", "-")
@@ -146,9 +200,73 @@ class TaskManager:
         description: Optional[str] = None,
         **kwargs: Any,
     ) -> "Group":
+        """Create an argument group for organizing related command-line arguments.
+
+        Argument groups allow you to create logical groupings of related arguments
+        in the help output. Arguments in a group are still part of the main parser
+        but are displayed separately in the help message.
+
+        Args:
+            title: The title of the argument group.
+            *args: Variable number of Argument objects to include in this group.
+            description: Optional longer description of the argument group.
+            **kwargs: Additional keyword arguments passed to argparse.ArgumentParser.add_argument_group().
+
+        Returns:
+            Group: A Group object that can be passed to the @do.task decorator.
+
+        Examples:
+            >>> @do.task(
+            ...     do.grp("input options",
+            ...         do.arg("--input-file", help="Input file path"),
+            ...         do.arg("--format", choices=["json", "yaml"]),
+            ...         description="Options for input handling"
+            ...     ),
+            ...     do.grp("output options",
+            ...         do.arg("--output-dir", help="Output directory"),
+            ...         do.arg("--compress", action="store_true")
+            ...     )
+            ... )
+            ... def convert(opt):
+            ...     pass
+        """
         return Group(title, *args, description=description, **kwargs)
 
     def muxgrp(self, *args: "Argument", required: bool = False) -> "MuxGroup":
+        """Create a mutually exclusive group of arguments.
+
+        A mutually exclusive group ensures that only one of the arguments in the group
+        can be provided at a time. If multiple arguments from the group are provided,
+        an error will be raised.
+
+        Args:
+            *args: Variable number of Argument objects that are mutually exclusive.
+            required: If True, one of the arguments in the group must be provided.
+                     If False, the arguments are optional. Defaults to False.
+
+        Returns:
+            MuxGroup: A MuxGroup object that can be passed to the @do.task decorator.
+
+        Examples:
+            >>> @do.task(
+            ...     do.muxgrp(
+            ...         do.arg("--quiet", action="store_true"),
+            ...         do.arg("--verbose", action="store_true"),
+            ...         required=False
+            ...     ),
+            ...     do.muxgrp(
+            ...         do.arg("--json", action="store_true"),
+            ...         do.arg("--yaml", action="store_true"),
+            ...         required=True
+            ...     )
+            ... )
+            ... def process(opt):
+            ...     pass
+
+        Note:
+            You cannot add groups (Group or MuxGroup) to a mutual exclusion group.
+            Only individual arguments are allowed.
+        """
         return MuxGroup(*args, required=required)
 
     @overload
@@ -220,6 +338,75 @@ class TaskManager:
         dest: Union[str, None] = None,
         **kwargs: Any,
     ) -> "Argument":
+        """Create a new command-line argument for a task.
+
+        Args:
+            name_or_flags: Either a name or a list of option strings, e.g. foo
+                or -f, --foo.
+
+            action: The basic type of action to be taken when this argument is encountered:
+                - 'store' (default): Store the argument's value
+                - 'store_true'/'store_false': Store True/False respectively
+                - 'store_const': Store value specified by const
+                - 'append': Store value in a list, can be specified multiple times
+                - 'append_const': Store const value in a list
+                - 'extend': Similar to append but for multiple values
+                Can also be a custom Action subclass.
+
+            nargs: Number of command-line arguments that should be consumed:
+                - N (integer): Exactly N arguments
+                - '?': Zero or one arguments
+                - '*': Zero or more arguments
+                - '+': One or more arguments
+                - '...': All remaining arguments
+
+            const: Constant value required by some action/nargs combinations,
+                e.g. with action='store_const' or nargs='?'.
+
+            default: Value produced if the argument is absent from the command
+            line and if it is absent from the namespace object.
+
+            type: Type to which the command-line argument should be converted.
+                By default, str.
+
+            choices: list
+                Container of allowable values for the argument.
+
+            required:
+                Whether the argument is required or optional.
+
+            help:
+                Brief description of what the argument does.
+
+            metavar:
+                Name for the argument in usage messages.
+
+            dest:
+                Name of the attribute under which arg will be stored.
+                By default, derived from the option strings.
+
+            **kwargs:
+                Additional keyword arguments for custom actions.
+
+        Returns:
+            An Argument object that can be passed to @do.task decorator.
+
+        Example:
+
+        ```python
+        >>> @do.task(
+        ...     do.arg("-n", "--name", help="Your name"),
+        ...     do.arg("--verbose", action="store_true"),
+        ...     do.arg("--count", type=int, default=1),
+        ... )
+        ... def greet(opt):
+        ...     for _ in range(opt.count):
+        ...         if opt.verbose:
+        ...             print(f"Hello, {opt.name}!")
+        ...         else:
+        ...             print(f"Hi {opt.name}")
+        ```
+        """
         return Argument(
             *name_or_flags,
             action=action,
