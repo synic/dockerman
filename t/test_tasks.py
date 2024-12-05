@@ -11,7 +11,7 @@ def do():
 
 
 def test_task_fail_wrong_num_args(do):
-    with pytest.raises(doot.InvalidArgumentCountException):
+    with pytest.raises(doot._InvalidArgumentCountException):
 
         @do.task()
         def hello_world_one(one, two, three):
@@ -19,7 +19,7 @@ def test_task_fail_wrong_num_args(do):
 
         _ = hello_world_one
 
-    with pytest.raises(doot.InvalidArgumentCountException):
+    with pytest.raises(doot._InvalidArgumentCountException):
 
         @do.task()
         def hello_world_two(one, two, three):
@@ -27,7 +27,7 @@ def test_task_fail_wrong_num_args(do):
 
         _ = hello_world_two
 
-    with pytest.raises(doot.InvalidArgumentCountException):
+    with pytest.raises(doot._InvalidArgumentCountException):
 
         @do.task()
         def hello_world_three(one, two, **kwargs):

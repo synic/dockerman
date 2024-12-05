@@ -17,7 +17,7 @@ from typing import (
 )
 
 
-def get_splash_from_calling_module() -> str:
+def _get_splash_from_calling_module() -> str:
     frm = inspect.stack()[2]
     mod = inspect.getmodule(frm[0])
     return (mod.__doc__ or "").split("\n")[0]
@@ -44,13 +44,36 @@ class TaskManager:
     logfunc: Callable[[str], None]
     parser: argparse.ArgumentParser
     subparser: argparse._SubParsersAction
-    tasks: Dict[str, "Task"]
+    tasks: Dict[str, "_Task"]
 
     def __init__(
         self,
         parser: Union[argparse.ArgumentParser, None] = None,
         logfunc: Callable[[str], None] = print,
     ) -> None:
+        """Initialize a new TaskManager instance.
+
+        Args:
+            parser: Optional custom ArgumentParser instance to use. If None,
+                a new ArgumentParser will be created with the program name
+                from sys.argv[0] and add_help=False.
+            logfunc: Callable function used for logging messages. Defaults to the
+                built-in print function. The function should accept a single string
+                argument.
+
+        Examples:
+            Basic initialization:
+                >>> do = TaskManager()
+
+            Custom parser and logger:
+                >>> import logging
+                >>> logger = logging.getLogger(__name__)
+                >>> parser = argparse.ArgumentParser(description="My CLI Tool")
+                >>> do = TaskManager(
+                ...     parser=parser,
+                ...     logfunc=logger.info
+                ... )
+        """
         self.logfunc = logfunc
         self.parser = parser or argparse.ArgumentParser(
             prog=sys.argv[0], add_help=False
@@ -60,7 +83,7 @@ class TaskManager:
 
     def task(
         self,
-        *arguments: "Argument | Group | MuxGroup",
+        *arguments: "_Argument | _Group | _MuxGroup",
         name: Union[str, None] = None,
         allow_extra: bool = False,
     ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
@@ -117,7 +140,7 @@ class TaskManager:
                 ...     pass
 
         Raises:
-            InvalidArgumentCountException: If the decorated function accepts more than 2 arguments.
+            _InvalidArgumentCountException: If the decorated function accepts more than 2 arguments.
         """
 
         def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
@@ -128,8 +151,8 @@ class TaskManager:
             parser.set_defaults(func=func)
 
             for item in arguments:
-                if isinstance(item, (Group, MuxGroup)):
-                    if isinstance(item, Group):
+                if isinstance(item, (_Group, _MuxGroup)):
+                    if isinstance(item, _Group):
                         group = parser.add_argument_group(
                             title=item.title,
                             description=item.description,
@@ -184,7 +207,7 @@ class TaskManager:
                 kwargs.update(item.extra_kwargs)
                 _: Any = parser.add_argument(*item.args, **kwargs)
 
-            task = Task(
+            task = _Task(
                 task_name, func, parser, allow_extra=allow_extra, doc=func.__doc__
             )
 
@@ -196,10 +219,10 @@ class TaskManager:
     def grp(
         self,
         title: str,
-        *args: "Argument",
+        *args: "_Argument",
         description: Optional[str] = None,
         **kwargs: Any,
-    ) -> "Group":
+    ) -> "_Group":
         """Create an argument group for organizing related command-line arguments.
 
         Argument groups allow you to create logical groupings of related arguments
@@ -230,9 +253,9 @@ class TaskManager:
             ... def convert(opt):
             ...     pass
         """
-        return Group(title, *args, description=description, **kwargs)
+        return _Group(title, *args, description=description, **kwargs)
 
-    def muxgrp(self, *args: "Argument", required: bool = False) -> "MuxGroup":
+    def muxgrp(self, *args: "_Argument", required: bool = False) -> "_MuxGroup":
         """Create a mutually exclusive group of arguments.
 
         A mutually exclusive group ensures that only one of the arguments in the group
@@ -267,7 +290,7 @@ class TaskManager:
             You cannot add groups (Group or MuxGroup) to a mutual exclusion group.
             Only individual arguments are allowed.
         """
-        return MuxGroup(*args, required=required)
+        return _MuxGroup(*args, required=required)
 
     @overload
     def arg(
@@ -278,7 +301,7 @@ class TaskManager:
         dest: Optional[str] = None,
         required: bool = False,
         **kwargs: Any,
-    ) -> "Argument": ...
+    ) -> "_Argument": ...
 
     @overload
     def arg(
@@ -290,7 +313,7 @@ class TaskManager:
         dest: Union[str, None] = None,
         required: bool = False,
         **kwargs: Any,
-    ) -> "Argument": ...
+    ) -> "_Argument": ...
 
     @overload
     def arg(
@@ -309,7 +332,7 @@ class TaskManager:
         metavar: Union[str, Tuple[str, ...], None] = None,
         dest: Union[str, None] = None,
         **kwargs: Any,
-    ) -> "Argument": ...
+    ) -> "_Argument": ...
 
     def arg(
         self,
@@ -337,7 +360,7 @@ class TaskManager:
         metavar: Union[str, Tuple[str, ...], None] = None,
         dest: Union[str, None] = None,
         **kwargs: Any,
-    ) -> "Argument":
+    ) -> "_Argument":
         """Create a new command-line argument for a task.
 
         Args:
@@ -407,7 +430,7 @@ class TaskManager:
         ...             print(f"Hi {opt.name}")
         ```
         """
-        return Argument(
+        return _Argument(
             *name_or_flags,
             action=action,
             nargs=nargs,
@@ -488,7 +511,7 @@ class TaskManager:
         self,
         args: Optional[List[str]] = None,
         name: Optional[str] = None,
-        splash: Union[Callable[[], str], str] = get_splash_from_calling_module,
+        splash: Union[Callable[[], str], str] = _get_splash_from_calling_module,
     ) -> Any:
         name = name or sys.argv[0]
         splash_str: str = (splash() if callable(splash) else splash) or ""
@@ -530,7 +553,7 @@ class TaskManager:
         return task(opt, extra)
 
 
-class Argument:
+class _Argument:
     """Argument for a task.
 
     Multiple arguments can be passed to each task. The argument constructor
@@ -647,7 +670,7 @@ class Argument:
         self.extra_kwargs = kwargs
 
 
-class Task:
+class _Task:
     allow_extra: bool
     name: str
     func: Callable[..., Any]
@@ -674,7 +697,7 @@ class Task:
         num_args = len(inspect.signature(self.func).parameters.keys())
 
         if num_args > 2:
-            raise InvalidArgumentCountException(self.name, num_args)
+            raise _InvalidArgumentCountException(self.name, num_args)
 
         return num_args
 
@@ -702,14 +725,14 @@ class Task:
             return self.func()
 
 
-class Group:
+class _Group:
     """An argument group.
 
     See https://docs.python.org/3/library/argparse.html#argument-groups for
     more information.
     """
 
-    args: Tuple["Argument", ...]
+    args: Tuple["_Argument", ...]
     title: str
     description: Union[str, None]
     kwargs: Dict[str, Any]
@@ -717,12 +740,12 @@ class Group:
     def __init__(
         self,
         title: str,
-        *args: "Argument",
+        *args: "_Argument",
         description: Union[str, None] = None,
         **kwargs: Any,
     ) -> None:
         for arg in args:
-            if isinstance(arg, Group):
+            if isinstance(arg, _Group):
                 raise ValueError(
                     f"You cannot add the `{arg.title}` group to the group `{title}`"
                 )
@@ -733,7 +756,7 @@ class Group:
         self.kwargs = kwargs
 
 
-class MuxGroup:
+class _MuxGroup:
     """A mutual exclusion group.
 
     See
@@ -741,19 +764,19 @@ class MuxGroup:
     for more information.
     """
 
-    args: Tuple["Argument", ...]
+    args: Tuple["_Argument", ...]
     required: bool
 
-    def __init__(self, *args: "Argument", required: bool = False) -> None:
+    def __init__(self, *args: "_Argument", required: bool = False) -> None:
         for arg in args:
-            if isinstance(arg, (Group, MuxGroup)):
+            if isinstance(arg, (_Group, _MuxGroup)):
                 raise ValueError("You cannot add groups to a mutual exclusion group")
 
         self.args = args
         self.required = required
 
 
-class InvalidArgumentCountException(Exception):
+class _InvalidArgumentCountException(Exception):
     def __init__(self, name: str, num_args: int):
         super().__init__(
             f"task `{name}` was defined to take {num_args} "
